@@ -49,24 +49,28 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {settings && (
-        <div className="bg-card border border-border rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-            {settings.logo_url ? (
-              <img src={settings.logo_url} alt="logo" className="h-12 w-12 object-contain rounded-lg" />
-            ) : (
-              <Wrench className="h-7 w-7 text-primary" />
-            )}
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+              {settings.logo_url ? (
+                <img src={settings.logo_url} alt="logo" className="h-12 w-12 object-contain rounded-lg" />
+              ) : (
+                <Wrench className="h-7 w-7 text-primary" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-foreground leading-tight">{settings.company_name}</h2>
+              {settings.tax_id && <p className="text-xs text-muted-foreground">RUT/NIT: {settings.tax_id}</p>}
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-foreground">{settings.company_name}</h2>
-            {settings.tax_id && <p className="text-xs text-muted-foreground">RUT/NIT: {settings.tax_id}</p>}
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            {settings.address && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{settings.address}</span>}
-            {settings.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{settings.phone}</span>}
-            {settings.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{settings.email}</span>}
-            {settings.website && <span className="flex items-center gap-1"><Globe className="h-3 w-3" />{settings.website}</span>}
-          </div>
+          {(settings.address || settings.phone || settings.email || settings.website) && (
+            <div className="mt-3 pt-3 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-1 gap-x-4">
+              {settings.address && <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3 w-3 flex-shrink-0" /><span className="truncate">{settings.address}</span></span>}
+              {settings.phone && <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Phone className="h-3 w-3 flex-shrink-0" /><span className="truncate">{settings.phone}</span></span>}
+              {settings.email && <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Mail className="h-3 w-3 flex-shrink-0" /><span className="truncate">{settings.email}</span></span>}
+              {settings.website && <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Globe className="h-3 w-3 flex-shrink-0" /><span className="truncate">{settings.website}</span></span>}
+            </div>
+          )}
         </div>
       )}
 
