@@ -14,7 +14,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
   const [form, setForm] = useState({
     customer_id: '', machine_id: '', date: new Date().toISOString().split('T')[0],
     problem_description: '', solution_description: '', status: 'pendiente',
-    parts_used: [], labor_cost: 0, abono: 0, notes: ''
+    attended_by: '', parts_used: [], labor_cost: 0, abono: 0, notes: ''
   });
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState('select');
@@ -30,6 +30,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
         problem_description: repair.problem_description || '',
         solution_description: repair.solution_description || '',
         status: repair.status || 'pendiente',
+        attended_by: repair.attended_by || '',
         parts_used: repair.parts_used || [],
         labor_cost: repair.labor_cost || 0,
         abono: repair.abono || 0,
@@ -40,7 +41,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
       setForm({
         customer_id: '', machine_id: '', date: new Date().toISOString().split('T')[0],
         problem_description: '', solution_description: '', status: 'pendiente',
-        parts_used: [], labor_cost: 0, abono: 0, notes: ''
+        attended_by: '', parts_used: [], labor_cost: 0, abono: 0, notes: ''
       });
       setNewCustomer({ name: '', phone: '', email: '', address: '' });
       setNewMachine({ name: '', brand: '', model: '', serial_number: '' });
@@ -322,6 +323,10 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
           <div className="sm:col-span-2">
             <Label>Solución</Label>
             <Textarea value={form.solution_description} onChange={e => setForm(f => ({ ...f, solution_description: e.target.value }))} className="bg-secondary border-border" rows={3} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Atendido por</Label>
+            <Input value={form.attended_by} onChange={e => setForm(f => ({ ...f, attended_by: e.target.value }))} className="bg-secondary border-border" placeholder="Nombre del técnico" />
           </div>
         </div>
 
