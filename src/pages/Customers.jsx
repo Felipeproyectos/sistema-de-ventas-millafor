@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Users, Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Users, Plus, Search, Pencil, Trash2, Upload } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
+import BulkImportModal from '../components/BulkImportModal';
 import { toast } from "sonner";
 
 export default function Customers() {
@@ -18,6 +19,7 @@ export default function Customers() {
   const [editCustomer, setEditCustomer] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', notes: '' });
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const nameRef = useRef(null);
@@ -90,6 +92,9 @@ export default function Customers() {
   return (
     <div className="space-y-4">
       <PageHeader title="Clientes" description="Gestión de clientes">
+        <Button variant="outline" onClick={() => setBulkOpen(true)} className="gap-2">
+          <Upload className="h-4 w-4" /> Carga masiva
+        </Button>
         <Button onClick={() => { setEditCustomer(null); setFormOpen(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> Nuevo Cliente
         </Button>
@@ -187,6 +192,13 @@ export default function Customers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BulkImportModal
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        entityType="customers"
+        onSuccess={load}
+      />
     </div>
   );
 }
