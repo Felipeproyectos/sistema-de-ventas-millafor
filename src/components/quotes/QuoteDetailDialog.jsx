@@ -115,6 +115,7 @@ export default function QuoteDetailDialog({ quote, onClose, onRefresh }) {
     doc.setTextColor(...GRAY);
     if (quote.machine_name) { doc.text(`Equipo: ${quote.machine_name}`, ml, y); y += 5; }
     if (quote.expiry_date)  { doc.text(`Válida hasta: ${quote.expiry_date}`, ml, y); y += 5; }
+    if (quote.attended_by)  { doc.text(`Atendido por: ${quote.attended_by}`, ml, y); y += 5; }
     y += 4;
 
     // ── TABLE ─────────────────────────────────────────────
@@ -342,6 +343,7 @@ export default function QuoteDetailDialog({ quote, onClose, onRefresh }) {
               <div><span className="text-muted-foreground">Válida hasta:</span> <span className="font-medium">{quote.expiry_date || '-'}</span></div>
               <div><span className="text-muted-foreground">Tipo:</span> <span className="font-medium">{quote.type === 'reparacion' ? 'Reparación' : 'Venta'}</span></div>
               {quote.machine_name && <div className="col-span-2"><span className="text-muted-foreground">Equipo:</span> <span className="font-medium">{quote.machine_name}</span></div>}
+              {quote.attended_by && <div className="col-span-2"><span className="text-muted-foreground">Atendido por:</span> <span className="font-medium">{quote.attended_by}</span></div>}
             </div>
 
             {items.length > 0 && (
