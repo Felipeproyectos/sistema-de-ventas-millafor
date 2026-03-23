@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Package, Plus, Search, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
+import { Package, Plus, Search, AlertTriangle, Pencil, Trash2, Upload } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
+import BulkImportModal from '../components/BulkImportModal';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -19,6 +20,7 @@ export default function Inventory() {
   const [editProduct, setEditProduct] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [form, setForm] = useState({ name: '', code: '', stock: 0, purchase_price: 0, sale_price: 0, min_stock: 5, category: '', description: '' });
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   async function load() {
     const p = await base44.entities.Product.list();
@@ -70,6 +72,9 @@ export default function Inventory() {
   return (
     <div className="space-y-4">
       <PageHeader title="Inventario" description="Gestión de productos y repuestos">
+        <Button variant="outline" onClick={() => setBulkOpen(true)} className="gap-2">
+          <Upload className="h-4 w-4" /> Carga masiva
+        </Button>
         <Button onClick={() => { setEditProduct(null); setFormOpen(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> Nuevo Producto
         </Button>
@@ -162,6 +167,13 @@ export default function Inventory() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BulkImportModal
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        entityType="products"
+        onSuccess={load}
+      />
     </div>
   );
 }
