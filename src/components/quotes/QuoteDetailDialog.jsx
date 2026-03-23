@@ -27,56 +27,195 @@ export default function QuoteDetailDialog({ quote, onClose, onRefresh }) {
   const items = quote.items || [];
   const subtotal = items.reduce((s, i) => s + (i.quantity || 0) * (i.unit_price || 0), 0);
 
-  const handlePrint = () => {
-    const { doc, y: startY, pageWidth } = createPdfDoc(settings, 'COTIZACIÓN');
-    let y = startY;
+  const handlePrint = async () => {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pw = doc.internal.pageSize.getWidth();
+    const ph = doc.internal.pageSize.getHeight();
+    const accent = [230, 100, 30]; // orange
+    const dark = [30, 30, 30];
+    const gray = [120, 120, 120];
+    const lightGray = [240, 240, 240];
 
+    // Top orange bar
+    doc.setFillColor(...accent);
+    doc.rect(0, 0, pw, 4, 'F');
+
+    // Left orange accent stripe
+    doc.setFillColor(...accent);
+    doc.rect(0, 4, 4, 60, 'F');
+
+    // Logo
+    let logoY = 10;
+    if (settings?.logo_url) {
+      try {
+        const img = await new Promise((res, rej) => {
+          const i = new Image();
+          i.crossOrigin = 'anonymous';
+          i.onload = () => res(i);
+          i.onerror = rej;
+          i.src = settings.logo_url;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = i.width; canvas.height = i.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        const imgData = canvas.toDataURL('image/png');
+        doc.addImage(imgData, 'PNG', 8, 8, 30, 18);
+        logoY = 30;
+      } catch {}
+    }
+
+    // Company name & tagline
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(...dark);
+    doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), 8, logoY + 2);
+    if (settings?.address || settings?.phone) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...gray);
+      if (settings?.address) doc.text(settings.address, 8, logoY + 7);
+      if (settings?.phone) doc.text(settings.phone, 8, logoY + 11);
+      if (settings?.email) doc.text(settings.email, 8, logoY + 15);
+    }
+
+    // COTIZACIÓN title + folio (top right)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(...dark);
+    doc.text('COTIZACIÓN', pw - 14, 16, { align: 'right' });
     doc.setFontSize(10);
-    doc.text(`Cotización: #${quote.quote_number || quote.id?.substring(0, 6)}`, 15, y);
-    doc.text(`Fecha: ${quote.date || '-'}`, pageWidth - 15, y, { align: 'right' });
-    y += 6;
-    doc.text(`Cliente: ${quote.customer_name || '-'}`, 15, y);
-    doc.text(`Válida hasta: ${quote.expiry_date || '-'}`, pageWidth - 15, y, { align: 'right' });
-    y += 6;
-    if (quote.machine_name) { doc.text(`Equipo: ${quote.machine_name}`, 15, y); y += 6; }
-    doc.text(`Tipo: ${quote.type === 'reparacion' ? 'Reparación / Servicio' : 'Venta de productos'}`, 15, y);
+    doc.setTextColor(...accent);
+    doc.text(`FOLIO N° ${quote.quote_number || quote.id?.substring(0, 6)}`, pw - 14, 23, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...gray);
+    doc.text(`Fecha: ${quote.date || '-'}`, pw - 14, 29, { align: 'right' });
+    if (quote.expiry_date) doc.text(`Válida hasta: ${quote.expiry_date}`, pw - 14, 34, { align: 'right' });
+
+    // Divider
+    let y = 66;
+    doc.setDrawColor(...accent);
+    doc.setLineWidth(0.5);
+    doc.line(8, y, pw - 8, y);
+    y += 7;
+
+    // Client info
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...dark);
+    doc.text((quote.customer_name || '-').toUpperCase(), 8, y); y += 5;
+    if (quote.machine_name) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...gray);
+      doc.text(`Equipo: ${quote.machine_name}`, 8, y); y += 5;
+    }
+    y += 4;
+
+    // Table header
+    const colX = { desc: 8, cant: 110, price: 138, total: 170 };
+    doc.setFillColor(...accent);
+    doc.rect(8, y - 5, pw - 16, 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text('DESCRIPCIÓN', colX.desc + 2, y);
+    doc.text('CANTIDAD', colX.cant, y);
+    doc.text('PRECIO UNITARIO', colX.price, y);
+    doc.text('TOTAL', colX.total, y);
+    y += 5;
+
+    // Table rows
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    let rowAlt = false;
+    for (const item of items) {
+      if (rowAlt) {
+        doc.setFillColor(...lightGray);
+        doc.rect(8, y - 4, pw - 16, 7, 'F');
+      }
+      rowAlt = !rowAlt;
+      doc.setTextColor(...dark);
+      const descLines = doc.splitTextToSize(item.description || '-', 95);
+      doc.text(descLines, colX.desc + 2, y);
+      doc.text(String(item.quantity || 0), colX.cant + 4, y);
+      doc.text(`$ ${(item.unit_price || 0).toLocaleString('es-CL')}`, colX.price, y);
+      doc.text(`$ ${((item.quantity || 0) * (item.unit_price || 0)).toLocaleString('es-CL')}`, colX.total, y);
+      y += Math.max(7, descLines.length * 5);
+    }
+
+    // Divider
+    y += 3;
+    doc.setDrawColor(...accent);
+    doc.setLineWidth(0.3);
+    doc.line(8, y, pw - 8, y);
     y += 8;
 
-    if (items.length) {
-      y = addTableHeader(doc, y, [
-        { label: 'Descripción', x: 17 },
-        { label: 'Cant', x: 120 },
-        { label: 'Precio Unit.', x: 140 },
-        { label: 'Subtotal', x: 168 },
-      ], pageWidth);
+    // Notes / Terms left side
+    if (quote.notes) {
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      items.forEach(item => {
-        doc.text(item.description || '-', 17, y);
-        doc.text(String(item.quantity || 0), 120, y);
-        doc.text(formatCurrency(item.unit_price), 140, y);
-        doc.text(formatCurrency((item.quantity || 0) * (item.unit_price || 0)), 168, y);
-        y += 6;
-      });
+      doc.setTextColor(...dark);
+      doc.text('TÉRMINOS & CONDICIONES:', 8, y); y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...gray);
+      const noteLines = doc.splitTextToSize(quote.notes, 90);
+      doc.text(noteLines, 8, y);
     }
 
-    y += 6;
-    doc.setFontSize(10);
-    if (quote.labor_cost > 0) {
-      doc.text(`Mano de obra: ${formatCurrency(quote.labor_cost)}`, pageWidth - 15, y, { align: 'right' }); y += 6;
-    }
-    if (quote.discount > 0) {
-      doc.text(`Descuento: -${formatCurrency(quote.discount)}`, pageWidth - 15, y, { align: 'right' }); y += 6;
-    }
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(12);
-    doc.text(`TOTAL: ${formatCurrency(quote.total)}`, pageWidth - 15, y, { align: 'right' });
-    y += 10;
-    if (quote.notes) {
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(9);
-      doc.text('Condiciones:', 15, y); y += 5;
-      doc.text(quote.notes, 15, y, { maxWidth: pageWidth - 30 });
-    }
+    // Totals right side
+    const totY0 = y - 8;
+    const totX = pw - 70;
+    const valX = pw - 14;
+    const drawTotalRow = (label, value, bold = false, color = dark) => {
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(bold ? 10 : 9);
+      doc.setTextColor(...color);
+      doc.text(label, totX, totY0 + drawTotalRow._i * 7);
+      doc.text(`$ ${value.toLocaleString('es-CL')}`, valX, totY0 + drawTotalRow._i * 7, { align: 'right' });
+      drawTotalRow._i++;
+    };
+    drawTotalRow._i = 0;
+    drawTotalRow('SUBTOTAL:', subtotal);
+    if (quote.labor_cost > 0) drawTotalRow('MANO DE OBRA:', quote.labor_cost);
+    if (quote.discount > 0) drawTotalRow('DESCUENTO:', -quote.discount);
+    // Final total highlight box
+    const ftY = totY0 + drawTotalRow._i * 7;
+    doc.setFillColor(...accent);
+    doc.rect(totX - 4, ftY - 5, pw - totX + 12, 9, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    doc.text('TOTAL FINAL:', totX, ftY);
+    doc.text(`$ ${(quote.total || 0).toLocaleString('es-CL')}`, valX, ftY, { align: 'right' });
+
+    // Footer
+    const fy = ph - 18;
+    doc.setDrawColor(...accent);
+    doc.setLineWidth(0.5);
+    doc.line(8, fy - 4, pw - 8, fy - 4);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...dark);
+    const cols3 = [8, pw / 3 + 4, (pw * 2) / 3 + 4];
+    const footItems = [
+      ['UBICACIÓN', settings?.address || '-'],
+      ['TELÉFONO', settings?.phone || '-'],
+      ['EMAIL', settings?.email || '-'],
+    ];
+    footItems.forEach(([label, val], i) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...dark);
+      doc.text(label + ':', cols3[i], fy + 2);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...gray);
+      doc.setFontSize(7.5);
+      const wrapped = doc.splitTextToSize(val, 55);
+      doc.text(wrapped, cols3[i], fy + 7);
+      doc.setFontSize(8);
+    });
 
     setPdfPreview({ open: true, url: getPdfBlobUrl(doc) });
   };
