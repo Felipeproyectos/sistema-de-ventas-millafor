@@ -17,6 +17,7 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
     date: new Date().toISOString().split('T')[0],
     expiry_date: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
     type: 'venta',
+    attended_by: '',
     items: [emptyItem()],
     labor_cost: 0, discount: 0, notes: '', status: 'pendiente'
   });
@@ -32,6 +33,7 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
         date: new Date().toISOString().split('T')[0],
         expiry_date: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
         type: 'venta',
+        attended_by: '',
         items: [emptyItem()],
         labor_cost: 0, discount: 0, notes: '', status: 'pendiente'
       });
@@ -231,8 +233,12 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
           <div>
             <Label>Válida hasta</Label>
             <Input type="date" value={form.expiry_date} onChange={e => setForm(f => ({ ...f, expiry_date: e.target.value }))} className="bg-secondary border-border" />
-          </div>
-        </div>
+            </div>
+            <div className="sm:col-span-2">
+            <Label>Atendido por</Label>
+            <Input value={form.attended_by} onChange={e => setForm(f => ({ ...f, attended_by: e.target.value }))} className="bg-secondary border-border" placeholder="Nombre de quien atiende" />
+            </div>
+            </div>
 
         {/* Items */}
         <div className="mt-5">
