@@ -14,7 +14,7 @@ const emptyItem = () => ({ product_id: '', product_name: '', quantity: 1, unit_p
 
 export default function SaleFormDialog({ open, onOpenChange, customers, products, onSaved }) {
   const [form, setForm] = useState({
-    customer_id: '', date: new Date().toISOString().split('T')[0], items: [emptyItem()], discount: 0, abono: 0, notes: ''
+    customer_id: '', date: new Date().toISOString().split('T')[0], attended_by: '', items: [emptyItem()], discount: 0, abono: 0, notes: ''
   });
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState('select');
@@ -23,7 +23,7 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
   useEffect(() => {
     if (open) {
       setForm({
-        customer_id: '', date: new Date().toISOString().split('T')[0], items: [emptyItem()], discount: 0, abono: 0, notes: ''
+        customer_id: '', date: new Date().toISOString().split('T')[0], attended_by: '', items: [emptyItem()], discount: 0, abono: 0, notes: ''
       });
       setNewCustomerData({ name: '', phone: '', email: '', address: '' });
       setTab('select');
@@ -166,6 +166,10 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
         <div>
           <Label>Fecha</Label>
           <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="bg-secondary border-border" />
+        </div>
+        <div>
+          <Label>Atendido por</Label>
+          <Input value={form.attended_by} onChange={e => setForm(f => ({ ...f, attended_by: e.target.value }))} className="bg-secondary border-border" placeholder="Nombre de quien atiende" />
         </div>
 
         <div className="mt-4">
