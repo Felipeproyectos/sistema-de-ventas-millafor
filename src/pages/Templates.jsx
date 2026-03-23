@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { FileCheck, Plus, Pencil, Trash2 } from 'lucide-react';
+import { FileCheck, Plus, Pencil, Trash2, Download, Package, Users, Monitor, FileSpreadsheet } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,140 @@ import EmptyState from '../components/EmptyState';
 import { toast } from "sonner";
 
 const typeLabels = { repair: 'Reparación', sale: 'Venta', inventory: 'Inventario', financial: 'Financiero', custom: 'Personalizado' };
+
+const IMPORT_TEMPLATES = [
+  {
+    id: 'products',
+    label: 'Inventario — Productos',
+    module: 'Inventario',
+    icon: Package,
+    color: 'bg-primary/10 text-primary',
+    description: 'Carga masiva de productos y repuestos al inventario.',
+    columns: [
+      { key: 'nombre', required: true, example: 'Filtro de aceite', desc: 'Nombre del producto' },
+      { key: 'codigo', required: true, example: 'FILT-001', desc: 'Código único del producto' },
+      { key: 'stock', required: false, example: '50', desc: 'Cantidad disponible' },
+      { key: 'stock_minimo', required: false, example: '5', desc: 'Alerta de stock bajo' },
+      { key: 'precio_compra', required: false, example: '3500', desc: 'Precio de compra (sin puntos ni $)' },
+      { key: 'precio_venta', required: false, example: '6000', desc: 'Precio de venta (sin puntos ni $)' },
+      { key: 'categoria', required: false, example: 'Filtros', desc: 'Categoría del producto' },
+      { key: 'descripcion', required: false, example: 'Filtro para motor diesel', desc: 'Descripción adicional' },
+    ],
+    filename: 'plantilla_productos',
+  },
+  {
+    id: 'customers',
+    label: 'Clientes',
+    module: 'Clientes',
+    icon: Users,
+    color: 'bg-accent/10 text-accent',
+    description: 'Carga masiva de clientes con sus datos de contacto.',
+    columns: [
+      { key: 'nombre', required: true, example: 'Juan Pérez', desc: 'Nombre completo del cliente' },
+      { key: 'email', required: false, example: 'juan@gmail.com', desc: 'Correo electrónico' },
+      { key: 'telefono', required: false, example: '+56912345678', desc: 'Número de teléfono' },
+      { key: 'direccion', required: false, example: 'Av. Libertad 123', desc: 'Dirección del cliente' },
+      { key: 'notas', required: false, example: 'Cliente frecuente', desc: 'Notas o comentarios' },
+    ],
+    filename: 'plantilla_clientes',
+  },
+  {
+    id: 'machines',
+    label: 'Equipos',
+    module: 'Equipos',
+    icon: Monitor,
+    color: 'bg-warning/10 text-warning',
+    description: 'Carga masiva de equipos o máquinas registradas.',
+    columns: [
+      { key: 'nombre', required: true, example: 'Compresor Industrial', desc: 'Nombre del equipo' },
+      { key: 'marca', required: false, example: 'Atlas Copco', desc: 'Marca del equipo' },
+      { key: 'modelo', required: false, example: 'GA15', desc: 'Modelo del equipo' },
+      { key: 'numero_serie', required: false, example: 'SN-2023-001', desc: 'Número de serie' },
+      { key: 'nombre_cliente', required: false, example: 'Juan Pérez', desc: 'Nombre exacto del cliente dueño' },
+      { key: 'notas', required: false, example: 'Revisión mensual', desc: 'Notas o comentarios' },
+    ],
+    filename: 'plantilla_equipos',
+  },
+];
+
+function downloadBulkTemplate(tpl) {
+  const headers = tpl.columns.map(c => c.key);
+  const example = tpl.columns.map(c => c.example);
+  const emptyRows = Array(9).fill(tpl.columns.map(() => '').join('\t'));
+  const rows = [headers.join('\t'), example.join('\t'), ...emptyRows].join('\n');
+  const blob = new Blob(['\uFEFF' + rows], { type: 'text/tab-separated-values;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${tpl.filename}.tsv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success(`Plantilla ${tpl.label} descargada`);
+}
+
+function ImportTemplateCard({ tpl }) {
+  const [expanded, setExpanded] = useState(false);
+  const Icon = tpl.icon;
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-all">
+      <div className="p-5">
+        <div className="flex items-start gap-3 mb-3">
+          <div className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${tpl.color}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold text-foreground">{tpl.label}</h3>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">Módulo: {tpl.module}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">{tpl.description}</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setExpanded(e => !e)}
+          className="text-xs text-primary hover:underline mb-3 flex items-center gap-1"
+        >
+          <FileSpreadsheet className="h-3.5 w-3.5" />
+          {expanded ? 'Ocultar columnas' : 'Ver columnas del formato'}
+        </button>
+
+        {expanded && (
+          <div className="mb-4 overflow-x-auto rounded-lg border border-border">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-secondary">
+                  <th className="px-3 py-2 text-left font-semibold text-foreground">Columna</th>
+                  <th className="px-3 py-2 text-left font-semibold text-foreground">Ejemplo</th>
+                  <th className="px-3 py-2 text-left font-semibold text-foreground">Descripción</th>
+                  <th className="px-3 py-2 text-left font-semibold text-foreground">¿Obligatorio?</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tpl.columns.map(col => (
+                  <tr key={col.key} className="border-t border-border">
+                    <td className="px-3 py-2 font-mono font-semibold text-foreground whitespace-nowrap">{col.key}</td>
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{col.example}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{col.desc}</td>
+                    <td className="px-3 py-2">
+                      {col.required
+                        ? <span className="text-destructive font-semibold">Sí</span>
+                        : <span className="text-muted-foreground">No</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <Button onClick={() => downloadBulkTemplate(tpl)} variant="outline" className="gap-2 w-full">
+          <Download className="h-4 w-4" /> Descargar plantilla Excel
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function Templates() {
   const [templates, setTemplates] = useState([]);
@@ -66,15 +200,39 @@ export default function Templates() {
     load();
   };
 
+  const [activeTab, setActiveTab] = useState('import');
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Plantillas de Informes" description="Crea y edita plantillas para generar documentos">
-        <Button onClick={() => { setEditTemplate(null); setFormOpen(true); }} className="gap-2">
-          <Plus className="h-4 w-4" /> Nueva Plantilla
-        </Button>
+      <PageHeader title="Plantillas" description="Plantillas de carga masiva e informes">
+        {activeTab === 'reports' && (
+          <Button onClick={() => { setEditTemplate(null); setFormOpen(true); }} className="gap-2">
+            <Plus className="h-4 w-4" /> Nueva Plantilla
+          </Button>
+        )}
       </PageHeader>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-secondary rounded-xl p-1 w-fit">
+        <button
+          onClick={() => setActiveTab('import')}
+          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            activeTab === 'import' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Plantillas de Carga Masiva
+        </button>
+        <button
+          onClick={() => setActiveTab('reports')}
+          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            activeTab === 'reports' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Plantillas de Informes
+        </button>
+      </div>
 
       {templates.length === 0 ? (
         <EmptyState icon={FileCheck} title="Sin plantillas" description="Crea tu primera plantilla de informe" />
