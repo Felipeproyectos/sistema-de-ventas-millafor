@@ -53,6 +53,15 @@ export default function SaleDetailDialog({ sale, onClose }) {
     doc.setFont(undefined, 'bold');
     doc.setFontSize(12);
     doc.text(`TOTAL: ${formatCurrency(sale.total)}`, pageWidth - 15, y, { align: 'right' });
+    if (sale.abono > 0) {
+      y += 6;
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(10);
+      doc.text(`Abono / Anticipo: ${formatCurrency(sale.abono)}`, pageWidth - 15, y, { align: 'right' });
+      y += 6;
+      doc.setFont(undefined, 'bold');
+      doc.text(`SALDO PENDIENTE: ${formatCurrency((sale.total || 0) - (sale.abono || 0))}`, pageWidth - 15, y, { align: 'right' });
+    }
 
     const filename = `venta-${sale.order_number || sale.id?.substring(0, 6)}.pdf`;
     setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });

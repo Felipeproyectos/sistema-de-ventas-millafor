@@ -74,6 +74,15 @@ export default function RepairDetailDialog({ repair, onClose }) {
     doc.setFont(undefined, 'bold');
     doc.setFontSize(12);
     doc.text(`TOTAL: ${formatCurrency(repair.total)}`, pageWidth - 15, y, { align: 'right' });
+    if (repair.abono > 0) {
+      y += 6;
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(10);
+      doc.text(`Abono / Anticipo: ${formatCurrency(repair.abono)}`, pageWidth - 15, y, { align: 'right' });
+      y += 6;
+      doc.setFont(undefined, 'bold');
+      doc.text(`SALDO PENDIENTE: ${formatCurrency((repair.total || 0) - (repair.abono || 0))}`, pageWidth - 15, y, { align: 'right' });
+    }
 
     const filename = `orden-${repair.order_number || repair.id?.substring(0, 6)}.pdf`;
     setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });

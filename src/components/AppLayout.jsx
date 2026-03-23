@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Wrench, Package, ShoppingCart, Users, Monitor, History, FileText, FileCheck, Settings, ChevronLeft, ChevronRight, Menu, X, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Wrench, Package, ShoppingCart, Users, Monitor, History, FileText, FileCheck, Settings, ChevronLeft, ChevronRight, Menu, X, ClipboardList, UserCog } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ const navItems = [
 { path: '/history', label: 'Historial', icon: History },
 { path: '/reports', label: 'Reportes', icon: FileText },
 { path: '/templates', label: 'Plantillas', icon: FileCheck },
+{ path: '/users', label: 'Usuarios', icon: UserCog },
 { path: '/settings', label: 'Configuración', icon: Settings }];
 
 

@@ -17,6 +17,7 @@ import HistoryPage from './pages/HistoryPage';
 import Reports from './pages/Reports';
 import Templates from './pages/Templates';
 import Quotes from './pages/Quotes';
+import Users from './pages/Users';
 import Settings from './pages/Settings';
 
 const AuthenticatedApp = () => {
@@ -45,6 +46,7 @@ const AuthenticatedApp = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/repairs" element={<Repairs />} />
         <Route path="/quotes" element={<Quotes />} />
+        <Route path="/users" element={<Users />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/sales" element={<Sales />} />
         <Route path="/customers" element={<Customers />} />
