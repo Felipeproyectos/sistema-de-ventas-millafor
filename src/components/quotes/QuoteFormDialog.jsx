@@ -21,6 +21,8 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
     labor_cost: 0, discount: 0, notes: '', status: 'pendiente'
   });
   const [saving, setSaving] = useState(false);
+  const [customerInput, setCustomerInput] = useState('');
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -32,6 +34,8 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
         items: [emptyItem()],
         labor_cost: 0, discount: 0, notes: '', status: 'pendiente'
       });
+      setCustomerInput('');
+      setIsNewCustomer(false);
     }
   }, [open]);
 
@@ -60,15 +64,41 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
 
   const customerMachines = machines.filter(m => !form.customer_id || m.customer_id === form.customer_id);
 
+  const handleCustomerSelect = (value) => {
+    const existing = customers.find(c => c.id === value);
+    if (existing) {
+      setForm(f => ({ ...f, customer_id: value }));
+      setCustomerInput(existing.name);
+      setIsNewCustomer(false);
+    }
+  };
+
+  const handleCustomerInputChange = (val) => {
+    setCustomerInput(val);
+    const match = customers.find(c => c.name.toLowerCase().includes(val.toLowerCase()));
+    if (match) {
+      handleCustomerSelect(match.id);
+    } else if (val.trim()) {
+      setForm(f => ({ ...f, customer_id: `new_${val}` }));
+      setIsNewCustomer(true);
+    }
+  };
+
   const handleSave = async () => {
-    if (!form.customer_id) { toast.error('Selecciona un cliente'); return; }
+    if (!customerInput) { toast.error('Ingresa un cliente'); return; }
     if (form.items.length === 0 || !form.items[0].description) { toast.error('Agrega al menos un ítem'); return; }
     setSaving(true);
-    const customer = customers.find(c => c.id === form.customer_id);
+    let customerId = form.customer_id;
+    let customerName = customerInput;
+    if (isNewCustomer) {
+      const newCustomer = await base44.entities.Customer.create({ name: customerName });
+      customerId = newCustomer.id;
+    }
     const machine = machines.find(m => m.id === form.machine_id);
     await base44.entities.Quote.create({
       ...form,
-      customer_name: customer?.name || '',
+      customer_id: customerId,
+      customer_name: customerName,
       machine_name: machine?.name || '',
       total,
       quote_number: `CT-${Date.now().toString().slice(-6)}`,
@@ -81,18 +111,39 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
           <DialogTitle>Nueva Cotización</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div>
-            <Label>Cliente *</Label>
-            <Select value={form.customer_id} onValueChange={v => setForm(f => ({ ...f, customer_id: v, machine_id: '' }))}>
-              <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>{customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-            </Select>
+           <Label>Cliente *</Label>
+           <div className="flex gap-2">
+             <Input
+               value={customerInput}
+               onChange={e => handleCustomerInputChange(e.target.value)}
+               placeholder="Escribe o selecciona cliente"
+               className="bg-secondary border-border flex-1"
+             />
+           </div>
+           {customers.length > 0 && customerInput && !isNewCustomer && (
+             <div className="mt-1 bg-secondary rounded-lg p-2 border border-border max-h-32 overflow-y-auto">
+               {customers
+                 .filter(c => c.name.toLowerCase().includes(customerInput.toLowerCase()))
+                 .map(c => (
+                   <button
+                     key={c.id}
+                     onClick={() => handleCustomerSelect(c.id)}
+                     className="block w-full text-left text-sm px-2 py-1 hover:bg-primary/20 rounded"
+                   >
+                     {c.name}
+                   </button>
+                 ))
+               }
+             </div>
+           )}
+           {isNewCustomer && <p className="text-xs text-accent mt-1">✓ Nuevo cliente: {customerInput}</p>}
           </div>
           <div>
             <Label>Tipo de cotización</Label>
@@ -206,9 +257,9 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
           <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="bg-secondary border-border" rows={2} placeholder="Garantía, tiempo de entrega, condiciones..." />
         </div>
 
-        <div className="flex justify-end gap-2 mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>{saving ? 'Guardando...' : 'Crear Cotización'}</Button>
+        <div className="flex justify-end gap-2 mt-4">
+         <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+         <Button onClick={handleSave} disabled={saving}>{saving ? 'Guardando...' : 'Crear Cotización'}</Button>
         </div>
       </DialogContent>
     </Dialog>
