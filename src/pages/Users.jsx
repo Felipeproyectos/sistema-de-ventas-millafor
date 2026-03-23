@@ -95,12 +95,15 @@ export default function Users() {
         })),
       ];
 
-      // Group by user
+      // Group by user (filter by current user if not admin)
       const byUser = {};
-      transactions.forEach(t => {
-        if (!byUser[t.user]) byUser[t.user] = [];
-        byUser[t.user].push(t);
-      });
+      const userEmail = currentUser?.email;
+      transactions
+        .filter(t => isAdmin || t.user === userEmail)
+        .forEach(t => {
+          if (!byUser[t.user]) byUser[t.user] = [];
+          byUser[t.user].push(t);
+        });
 
       // ── PAGE HEADER ──────────────────────────────────────
       const drawPageHeader = async (isFirst) => {
@@ -257,7 +260,7 @@ export default function Users() {
     <>
     <div className="space-y-4">
       <PageHeader title="Usuarios" description="Gestión de acceso a la aplicación">
-        {isAdmin && (
+        {(isAdmin || true) && (
           <div className="flex items-center gap-2">
             <Button onClick={handleGenerateReport} disabled={generatingReport} variant="outline" className="gap-2">
               {generatingReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
