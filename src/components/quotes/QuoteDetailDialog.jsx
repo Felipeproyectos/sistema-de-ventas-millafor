@@ -33,8 +33,14 @@ export default function QuoteDetailDialog({ quote, onClose, onRefresh }) {
     const pw = doc.internal.pageSize.getWidth();
     const ph = doc.internal.pageSize.getHeight();
 
-    // Colors
-    const ORANGE = [214, 90, 30];
+    // Colors — use company accent color
+    const hexToRgb = (hex) => {
+      const r = parseInt(hex.slice(1,3),16);
+      const g = parseInt(hex.slice(3,5),16);
+      const b = parseInt(hex.slice(5,7),16);
+      return [r, g, b];
+    };
+    const ORANGE = settings?.accent_color ? hexToRgb(settings.accent_color) : [214, 90, 30];
     const DARK   = [30, 30, 30];
     const GRAY   = [110, 110, 110];
     const WHITE  = [255, 255, 255];
