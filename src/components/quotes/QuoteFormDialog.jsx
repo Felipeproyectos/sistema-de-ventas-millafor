@@ -66,10 +66,10 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
 
   const customerMachines = machines.filter(m => !form.customer_id || m.customer_id === form.customer_id);
 
-  const handleCustomerSelect = (value) => {
-    const existing = customers.find(c => c.id === value);
+  const handleCustomerSelect = (customerId) => {
+    const existing = customers.find(c => c.id === customerId);
     if (existing) {
-      setForm(f => ({ ...f, customer_id: value }));
+      setForm(f => ({ ...f, customer_id: customerId }));
       setCustomerInput(existing.name);
       setIsNewCustomer(false);
     }
@@ -77,14 +77,17 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
 
   const handleCustomerInputChange = (val) => {
     setCustomerInput(val);
-    const match = customers.find(c => c.name.toLowerCase().includes(val.toLowerCase()));
-    if (match) {
-      handleCustomerSelect(match.id);
-    } else if (val.trim()) {
-      setForm(f => ({ ...f, customer_id: `new_${val}` }));
+    setIsNewCustomer(false);
+  };
+
+  const handleCreateNewCustomer = () => {
+    if (customerInput.trim()) {
+      setForm(f => ({ ...f, customer_id: `new_${customerInput}` }));
       setIsNewCustomer(true);
     }
   };
+
+  const filteredCustomers = customers.filter(c => c.name.toLowerCase().includes(customerInput.toLowerCase()));
 
   const handleSave = async () => {
     if (!customerInput) { toast.error('Ingresa un cliente'); return; }
@@ -126,36 +129,40 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-          <div>
-           <Label>Cliente *</Label>
-           <div className="flex gap-2">
-             <Input
-               value={customerInput}
-               onChange={e => handleCustomerInputChange(e.target.value)}
-               placeholder="Escribe o selecciona cliente"
-               className="bg-secondary border-border flex-1"
-             />
-           </div>
-           {customers.length > 0 && customerInput && !isNewCustomer && (
-             <div className="mt-1 bg-secondary rounded-lg p-2 border border-border max-h-32 overflow-y-auto">
-               {customers
-                 .filter(c => c.name.toLowerCase().includes(customerInput.toLowerCase()))
-                 .map(c => (
-                   <button
-                     key={c.id}
-                     onClick={() => handleCustomerSelect(c.id)}
-                     className="block w-full text-left text-sm px-2 py-1 hover:bg-primary/20 rounded"
-                   >
-                     {c.name}
-                   </button>
-                 ))
-               }
-             </div>
-           )}
-           {isNewCustomer && <p className="text-xs text-accent mt-1">✓ Nuevo cliente: {customerInput}</p>}
-           </div>
+          <div className="sm:col-span-2">
+            <Label>Cliente *</Label>
+            <Input
+              value={customerInput}
+              onChange={e => handleCustomerInputChange(e.target.value)}
+              placeholder="Busca un cliente existente"
+              className="bg-secondary border-border"
+            />
+            {customerInput && !isNewCustomer && (
+              <div className="mt-2 bg-secondary rounded-lg border border-border max-h-40 overflow-y-auto">
+                {filteredCustomers.length > 0 ? (
+                  filteredCustomers.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => handleCustomerSelect(c.id)}
+                      className="block w-full text-left text-sm px-3 py-2 hover:bg-primary/20 border-b border-border last:border-b-0"
+                    >
+                      {c.name}
+                    </button>
+                  ))
+                ) : (
+                  <button
+                    onClick={handleCreateNewCustomer}
+                    className="block w-full text-left text-sm px-3 py-2 hover:bg-accent/20 text-accent font-medium"
+                  >
+                    + Crear nuevo cliente: {customerInput}
+                  </button>
+                )}
+              </div>
+            )}
+            {isNewCustomer && <p className="text-xs text-accent mt-2 font-medium">✓ Nuevo cliente: {customerInput}</p>}
+          </div>
            {isNewCustomer && (
-           <div className="sm:col-span-2 mt-4 pt-4 border-t border-border space-y-3">
+             <div className="sm:col-span-2 mt-4 pt-4 border-t border-border space-y-3" style={{gridColumn: 'span 2'}}>
              <p className="text-xs font-semibold text-muted-foreground">Información del cliente</p>
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                <div>
