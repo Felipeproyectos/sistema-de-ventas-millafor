@@ -135,14 +135,21 @@ const CONFIGS = {
 };
 
 function downloadTemplate(config) {
+  // Use tab-separated values for Excel compatibility (works universally)
   const headers = config.columns.map(c => c.key);
   const example = config.columns.map(c => c.example);
-  const csvContent = [headers.join(','), example.join(',')].join('\n');
-  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const emptyRows = Array(4).fill(config.columns.map(() => '').join('\t'));
+  const rows = [
+    headers.join('\t'),
+    example.join('\t'),
+    ...emptyRows,
+  ];
+  const tsvContent = rows.join('\n');
+  const blob = new Blob(['\uFEFF' + tsvContent], { type: 'text/tab-separated-values;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `plantilla_${config.entity.toLowerCase()}.csv`;
+  a.download = `plantilla_${config.entity.toLowerCase()}.tsv`;
   a.click();
   URL.revokeObjectURL(url);
 }
