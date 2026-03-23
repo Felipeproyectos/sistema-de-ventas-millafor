@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2 } from 'lucide-react';
 import { toast } from "sonner";
 
@@ -16,6 +17,9 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
     parts_used: [], labor_cost: 0, abono: 0, notes: ''
   });
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState('select');
+  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', email: '', address: '' });
+  const [newMachine, setNewMachine] = useState({ name: '', brand: '', model: '', serial_number: '' });
 
   useEffect(() => {
     if (repair) {
@@ -31,12 +35,16 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
         abono: repair.abono || 0,
         notes: repair.notes || '',
       });
+      setTab('select');
     } else {
       setForm({
         customer_id: '', machine_id: '', date: new Date().toISOString().split('T')[0],
         problem_description: '', solution_description: '', status: 'pendiente',
         parts_used: [], labor_cost: 0, abono: 0, notes: ''
       });
+      setNewCustomer({ name: '', phone: '', email: '', address: '' });
+      setNewMachine({ name: '', brand: '', model: '', serial_number: '' });
+      setTab('select');
     }
   }, [repair, open]);
 
@@ -68,10 +76,44 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
   const saldo = total - (Number(form.abono) || 0);
 
   const customerMachines = machines.filter(m => !form.customer_id || m.customer_id === form.customer_id);
+  const selectedCustomer = customers.find(c => c.id === form.customer_id);
+
+  const handleCreateCustomer = async () => {
+    if (!newCustomer.name || !newCustomer.phone) {
+      toast.error('Nombre y teléfono son obligatorios');
+      return;
+    }
+    try {
+      const created = await base44.entities.Customer.create(newCustomer);
+      setForm(f => ({ ...f, customer_id: created.id }));
+      setNewCustomer({ name: '', phone: '', email: '', address: '' });
+      toast.success('Cliente creado');
+    } catch (err) {
+      toast.error('Error: ' + err.message);
+    }
+  };
+
+  const handleCreateMachine = async () => {
+    if (!newMachine.name || !form.customer_id) {
+      toast.error('Nombre del equipo y cliente son obligatorios');
+      return;
+    }
+    try {
+      const created = await base44.entities.Machine.create({
+        ...newMachine,
+        customer_id: form.customer_id
+      });
+      setForm(f => ({ ...f, machine_id: created.id }));
+      setNewMachine({ name: '', brand: '', model: '', serial_number: '' });
+      toast.success('Equipo creado');
+    } catch (err) {
+      toast.error('Error: ' + err.message);
+    }
+  };
 
   const handleSave = async () => {
     if (!form.customer_id || !form.machine_id) {
-      toast.error('Selecciona un cliente y equipo');
+      toast.error('Selecciona cliente y equipo');
       return;
     }
     setSaving(true);
@@ -130,6 +172,8 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
     }
   };
 
+  const isFormComplete = form.customer_id && form.machine_id && (form.parts_used.length > 0 || form.problem_description);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
@@ -137,25 +181,125 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
           <DialogTitle>{repair ? 'Editar Orden' : 'Nueva Orden de Reparación'}</DialogTitle>
         </DialogHeader>
 
+        {!repair && (
+          <Tabs value={tab} onValueChange={setTab} className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="select">Seleccionar</TabsTrigger>
+              <TabsTrigger value="new">Crear desde 0</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="select" className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>Cliente *</Label>
+                  <Select value={form.customer_id} onValueChange={v => setForm(f => ({ ...f, customer_id: v }))}>
+                    <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                    <SelectContent>
+                      {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Equipo *</Label>
+                  <Select value={form.machine_id} onValueChange={v => setForm(f => ({ ...f, machine_id: v }))}>
+                    <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                    <SelectContent>
+                      {customerMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name} {m.brand ? `- ${m.brand}` : ''}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="new" className="space-y-4">
+              <div className="space-y-3 p-4 bg-secondary/30 rounded-lg">
+                <h3 className="text-sm font-semibold">Crear cliente</h3>
+                <Input
+                  placeholder="Nombre *"
+                  value={newCustomer.name}
+                  onChange={e => setNewCustomer(c => ({ ...c, name: e.target.value }))}
+                  className="bg-background border-border"
+                />
+                <Input
+                  placeholder="Teléfono *"
+                  value={newCustomer.phone}
+                  onChange={e => setNewCustomer(c => ({ ...c, phone: e.target.value }))}
+                  className="bg-background border-border"
+                />
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={newCustomer.email}
+                  onChange={e => setNewCustomer(c => ({ ...c, email: e.target.value }))}
+                  className="bg-background border-border"
+                />
+                <Input
+                  placeholder="Dirección"
+                  value={newCustomer.address}
+                  onChange={e => setNewCustomer(c => ({ ...c, address: e.target.value }))}
+                  className="bg-background border-border"
+                />
+                <Button onClick={handleCreateCustomer} className="w-full">Crear cliente</Button>
+              </div>
+
+              {form.customer_id && (
+                <div className="space-y-3 p-4 bg-secondary/30 rounded-lg">
+                  <h3 className="text-sm font-semibold">Crear equipo para {selectedCustomer?.name}</h3>
+                  <Input
+                    placeholder="Nombre del equipo *"
+                    value={newMachine.name}
+                    onChange={e => setNewMachine(m => ({ ...m, name: e.target.value }))}
+                    className="bg-background border-border"
+                  />
+                  <Input
+                    placeholder="Marca"
+                    value={newMachine.brand}
+                    onChange={e => setNewMachine(m => ({ ...m, brand: e.target.value }))}
+                    className="bg-background border-border"
+                  />
+                  <Input
+                    placeholder="Modelo"
+                    value={newMachine.model}
+                    onChange={e => setNewMachine(m => ({ ...m, model: e.target.value }))}
+                    className="bg-background border-border"
+                  />
+                  <Input
+                    placeholder="Número de serie"
+                    value={newMachine.serial_number}
+                    onChange={e => setNewMachine(m => ({ ...m, serial_number: e.target.value }))}
+                    className="bg-background border-border"
+                  />
+                  <Button onClick={handleCreateMachine} className="w-full">Crear equipo</Button>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {repair && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label>Cliente</Label>
+              <Select value={form.customer_id} onValueChange={v => setForm(f => ({ ...f, customer_id: v }))}>
+                <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Equipo</Label>
+              <Select value={form.machine_id} onValueChange={v => setForm(f => ({ ...f, machine_id: v }))}>
+                <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  {customerMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name} {m.brand ? `- ${m.brand}` : ''}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-          <div>
-            <Label>Cliente *</Label>
-            <Select value={form.customer_id} onValueChange={v => setForm(f => ({ ...f, customer_id: v }))}>
-              <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Equipo *</Label>
-            <Select value={form.machine_id} onValueChange={v => setForm(f => ({ ...f, machine_id: v }))}>
-              <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>
-                {customerMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name} {m.brand ? `- ${m.brand}` : ''}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
           <div>
             <Label>Fecha</Label>
             <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="bg-secondary border-border" />
@@ -181,7 +325,6 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
           </div>
         </div>
 
-        {/* Parts */}
         <div className="mt-4">
           <div className="flex items-center justify-between mb-2">
             <Label className="text-sm font-semibold">Repuestos utilizados</Label>
@@ -232,7 +375,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
 
         <div className="flex justify-end gap-2 mt-6">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || !isFormComplete}>
             {saving ? 'Guardando...' : repair ? 'Actualizar' : 'Crear Orden'}
           </Button>
         </div>
