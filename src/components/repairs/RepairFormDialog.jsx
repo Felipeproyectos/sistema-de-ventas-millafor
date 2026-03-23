@@ -75,57 +75,59 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
       return;
     }
     setSaving(true);
+    try {
+      const customer = customers.find(c => c.id === form.customer_id);
+      const machine = machines.find(m => m.id === form.machine_id);
 
-    const customer = customers.find(c => c.id === form.customer_id);
-    const machine = machines.find(m => m.id === form.machine_id);
+      const data = {
+        ...form,
+        customer_name: customer?.name || '',
+        machine_name: machine?.name || '',
+        total,
+        abono: Number(form.abono) || 0,
+        order_number: repair?.order_number || `OR-${Date.now().toString().slice(-6)}`,
+      };
 
-    const data = {
-      ...form,
-      customer_name: customer?.name || '',
-      machine_name: machine?.name || '',
-      total,
-      abono: Number(form.abono) || 0,
-      order_number: repair?.order_number || `OR-${Date.now().toString().slice(-6)}`,
-    };
-
-    // Stock deduction for new parts
-    if (!repair) {
-      for (const part of form.parts_used) {
-        if (part.product_id && part.quantity > 0) {
-          const prod = products.find(p => p.id === part.product_id);
-          if (prod) {
-            await base44.entities.Product.update(prod.id, { stock: Math.max(0, (prod.stock || 0) - part.quantity) });
+      if (!repair) {
+        for (const part of form.parts_used) {
+          if (part.product_id && part.quantity > 0) {
+            const prod = products.find(p => p.id === part.product_id);
+            if (prod) {
+              await base44.entities.Product.update(prod.id, { stock: Math.max(0, (prod.stock || 0) - part.quantity) });
+            }
+          }
+        }
+      } else {
+        const oldParts = repair.parts_used || [];
+        for (const newPart of form.parts_used) {
+          if (!newPart.product_id) continue;
+          const oldPart = oldParts.find(op => op.product_id === newPart.product_id);
+          const oldQty = oldPart ? oldPart.quantity : 0;
+          const diff = (newPart.quantity || 0) - oldQty;
+          if (diff !== 0) {
+            const prod = products.find(p => p.id === newPart.product_id);
+            if (prod) {
+              await base44.entities.Product.update(prod.id, { stock: Math.max(0, (prod.stock || 0) - diff) });
+            }
           }
         }
       }
-    } else {
-      // Handle stock changes for edits
-      const oldParts = repair.parts_used || [];
-      for (const newPart of form.parts_used) {
-        if (!newPart.product_id) continue;
-        const oldPart = oldParts.find(op => op.product_id === newPart.product_id);
-        const oldQty = oldPart ? oldPart.quantity : 0;
-        const diff = (newPart.quantity || 0) - oldQty;
-        if (diff !== 0) {
-          const prod = products.find(p => p.id === newPart.product_id);
-          if (prod) {
-            await base44.entities.Product.update(prod.id, { stock: Math.max(0, (prod.stock || 0) - diff) });
-          }
-        }
+
+      if (repair) {
+        await base44.entities.RepairOrder.update(repair.id, data);
+        toast.success('Orden actualizada');
+      } else {
+        await base44.entities.RepairOrder.create(data);
+        toast.success('Orden creada');
       }
-    }
 
-    if (repair) {
-      await base44.entities.RepairOrder.update(repair.id, data);
-      toast.success('Orden actualizada');
-    } else {
-      await base44.entities.RepairOrder.create(data);
-      toast.success('Orden creada');
+      onOpenChange(false);
+      onSaved();
+    } catch (err) {
+      toast.error('Error al guardar: ' + err.message);
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
-    onOpenChange(false);
-    onSaved();
   };
 
   return (
