@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Wrench, Package, ShoppingCart, AlertTriangle, TrendingUp, Clock } from 'lucide-react';
+import { Wrench, Package, ShoppingCart, Clock, MapPin, Phone, Mail, Globe } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import PageHeader from '../components/PageHeader';
 import DashboardCharts from '../components/dashboard/DashboardCharts';
@@ -11,18 +11,21 @@ export default function Dashboard() {
   const [repairs, setRepairs] = useState([]);
   const [products, setProducts] = useState([]);
   const [sales, setSales] = useState([]);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const [r, p, s] = await Promise.all([
+      const [r, p, s, cs] = await Promise.all([
         base44.entities.RepairOrder.list(),
         base44.entities.Product.list(),
         base44.entities.SaleOrder.list(),
+        base44.entities.CompanySettings.list(),
       ]);
       setRepairs(r);
       setProducts(p);
       setSales(s);
+      if (cs.length) setSettings(cs[0]);
       setLoading(false);
     }
     load();
@@ -45,8 +48,30 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Dashboard" 
+      {settings && (
+        <div className="bg-card border border-border rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            {settings.logo_url ? (
+              <img src={settings.logo_url} alt="logo" className="h-12 w-12 object-contain rounded-lg" />
+            ) : (
+              <Wrench className="h-7 w-7 text-primary" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold text-foreground">{settings.company_name}</h2>
+            {settings.tax_id && <p className="text-xs text-muted-foreground">RUT/NIT: {settings.tax_id}</p>}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {settings.address && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{settings.address}</span>}
+            {settings.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{settings.phone}</span>}
+            {settings.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{settings.email}</span>}
+            {settings.website && <span className="flex items-center gap-1"><Globe className="h-3 w-3" />{settings.website}</span>}
+          </div>
+        </div>
+      )}
+
+      <PageHeader
+        title="Dashboard"
         description="Resumen general de tu negocio"
       />
 
