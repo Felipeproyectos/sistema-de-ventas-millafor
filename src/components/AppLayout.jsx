@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Wrench, Package, ShoppingCart, Users, Monitor, History, FileText, FileCheck, Settings, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Wrench, Package, ShoppingCart, Users, Monitor, History, FileText, FileCheck, Settings, ChevronLeft, ChevronRight, Menu, X, ClipboardList } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
 { path: '/', label: 'Dashboard', icon: LayoutDashboard },
 { path: '/repairs', label: 'Reparaciones', icon: Wrench },
+{ path: '/quotes', label: 'Cotizaciones', icon: ClipboardList },
 { path: '/inventory', label: 'Inventario', icon: Package },
 { path: '/sales', label: 'Ventas', icon: ShoppingCart },
 { path: '/customers', label: 'Clientes', icon: Users },
@@ -48,15 +49,13 @@ export default function AppLayout() {
           "h-16 flex items-center border-b border-border px-4",
           collapsed ? "justify-center" : "gap-3"
         )}>
-          <div className="h-9 w-9 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-            <Wrench className="h-5 w-5 text-primary" />
-          </div>
-          {!collapsed &&
-          <div className="overflow-hidden">
-              <h1 className="text-sm font-bold text-foreground truncate">MILLAFOR</h1>
-              <p className="text-[10px] text-muted-foreground">Gestión de Servicios</p>
+          {collapsed ? (
+            <div className="h-9 w-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <img src="https://media.base44.com/images/public/69c14942c65b1a037484aa71/945d3b1f0_WhatsAppImage2026-03-23at12111PM.jpeg" alt="MILLAFOR" className="h-8 w-8 object-contain" />
             </div>
-          }
+          ) : (
+            <img src="https://media.base44.com/images/public/69c14942c65b1a037484aa71/945d3b1f0_WhatsAppImage2026-03-23at12111PM.jpeg" alt="MILLAFOR" className="h-10 object-contain" />
+          )}
           <button
             onClick={() => setMobileOpen(false)}
             className="ml-auto lg:hidden text-muted-foreground hover:text-foreground">
@@ -138,7 +137,7 @@ export default function AppLayout() {
           <button onClick={() => setMobileOpen(true)} className="text-muted-foreground hover:text-foreground">
             <Menu className="h-5 w-5" />
           </button>
-          <span className="ml-3 font-semibold text-sm">ServicePro</span>
+          <img src="https://media.base44.com/images/public/69c14942c65b1a037484aa71/945d3b1f0_WhatsAppImage2026-03-23at12111PM.jpeg" alt="MILLAFOR" className="ml-3 h-7 object-contain" />
         </div>
         <div className="p-4 lg:p-8 max-w-[1600px] mx-auto">
           <Outlet />
