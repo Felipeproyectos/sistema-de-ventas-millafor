@@ -234,33 +234,50 @@ export default function Templates() {
         </button>
       </div>
 
-      {templates.length === 0 ? (
-        <EmptyState icon={FileCheck} title="Sin plantillas" description="Crea tu primera plantilla de informe" />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templates.map(t => (
-            <div key={t.id} className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-all">
-              <div className="flex items-start justify-between mb-3">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FileCheck className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditTemplate(t); setFormOpen(true); }}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(t.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">{t.name}</h3>
-              <span className="inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
-                {typeLabels[t.type] || t.type}
-              </span>
-              {t.header_text && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{t.header_text}</p>}
-            </div>
-          ))}
+      {/* Import Templates Tab */}
+      {activeTab === 'import' && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Descarga la plantilla del módulo que necesitas, réllala en Excel y luego úsala en el botón <strong>"Carga masiva"</strong> de cada sección.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {IMPORT_TEMPLATES.map(tpl => <ImportTemplateCard key={tpl.id} tpl={tpl} />)}
+          </div>
         </div>
+      )}
+
+      {/* Report Templates Tab */}
+      {activeTab === 'reports' && (
+        <>
+          {templates.length === 0 ? (
+            <EmptyState icon={FileCheck} title="Sin plantillas" description="Crea tu primera plantilla de informe" />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {templates.map(t => (
+                <div key={t.id} className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-all">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <FileCheck className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditTemplate(t); setFormOpen(true); }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(t.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">{t.name}</h3>
+                  <span className="inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+                    {typeLabels[t.type] || t.type}
+                  </span>
+                  {t.header_text && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{t.header_text}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       <Dialog open={formOpen} onOpenChange={v => { setFormOpen(v); if (!v) setEditTemplate(null); }}>
