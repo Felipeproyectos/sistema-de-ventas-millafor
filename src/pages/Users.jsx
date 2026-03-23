@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { UserPlus, Shield, User, Mail, FileText, Loader2 } from 'lucide-react';
+import PdfPreviewModal from '../components/PdfPreviewModal';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ export default function Users() {
   const [inviteForm, setInviteForm] = useState({ email: '', role: 'user' });
   const [inviting, setInviting] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [pdfPreview, setPdfPreview] = useState({ open: false, url: null });
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -242,7 +244,8 @@ export default function Users() {
       doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
       doc.text(company.company_name||'', pw/2, ph-7, {align:'center'});
 
-      doc.save(`reporte-transacciones-${new Date().toISOString().split('T')[0]}.pdf`);
+      const { getPdfBlobUrl } = await import('../lib/pdfUtils');
+      setPdfPreview({ open: true, url: getPdfBlobUrl(doc) });
     } finally {
       setGeneratingReport(false);
     }
@@ -348,5 +351,12 @@ export default function Users() {
         </Dialog>
       )}
     </div>
+
+    <PdfPreviewModal
+      open={pdfPreview.open}
+      onOpenChange={open => setPdfPreview(p => ({ ...p, open }))}
+      blobUrl={pdfPreview.url}
+      filename={`reporte-transacciones-${new Date().toISOString().split('T')[0]}.pdf`}
+    />
   );
 }
