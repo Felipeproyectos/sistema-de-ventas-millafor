@@ -21,6 +21,7 @@ export default function Quotes() {
   const [quotes, setQuotes] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [machines, setMachines] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -29,12 +30,13 @@ export default function Quotes() {
   const [deleteId, setDeleteId] = useState(null);
 
   async function load() {
-    const [q, c, m] = await Promise.all([
+    const [q, c, m, p] = await Promise.all([
       base44.entities.Quote.list('-created_date'),
       base44.entities.Customer.list(),
       base44.entities.Machine.list(),
+      base44.entities.Product.list(),
     ]);
-    setQuotes(q); setCustomers(c); setMachines(m);
+    setQuotes(q); setCustomers(c); setMachines(m); setProducts(p);
     setLoading(false);
   }
 
@@ -155,6 +157,7 @@ export default function Quotes() {
         onOpenChange={setFormOpen}
         customers={customers}
         machines={machines}
+        products={products}
         onSaved={load}
       />
 

@@ -9,13 +9,15 @@ import { Plus, Trash2 } from 'lucide-react';
 import { toast } from "sonner";
 import { base44 } from '@/api/base44Client';
 
-export default function QuoteFormDialog({ open, onOpenChange, customers, machines, onSaved }) {
+const emptyItem = () => ({ product_id: '', description: '', quantity: 1, unit_price: 0, purchase_price: 0 });
+
+export default function QuoteFormDialog({ open, onOpenChange, customers, machines, products, onSaved }) {
   const [form, setForm] = useState({
     customer_id: '', machine_id: '',
     date: new Date().toISOString().split('T')[0],
     expiry_date: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
     type: 'venta',
-    items: [{ description: '', quantity: 1, unit_price: 0 }],
+    items: [emptyItem()],
     labor_cost: 0, discount: 0, notes: '', status: 'pendiente'
   });
   const [saving, setSaving] = useState(false);
@@ -27,7 +29,7 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
         date: new Date().toISOString().split('T')[0],
         expiry_date: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
         type: 'venta',
-        items: [{ description: '', quantity: 1, unit_price: 0 }],
+        items: [emptyItem()],
         labor_cost: 0, discount: 0, notes: '', status: 'pendiente'
       });
     }
@@ -36,12 +38,22 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
   const subtotal = form.items.reduce((s, i) => s + (i.quantity || 0) * (i.unit_price || 0), 0);
   const total = subtotal + (Number(form.labor_cost) || 0) - (Number(form.discount) || 0);
 
-  const addItem = () => setForm(f => ({ ...f, items: [...f.items, { description: '', quantity: 1, unit_price: 0 }] }));
+  const addItem = () => setForm(f => ({ ...f, items: [...f.items, emptyItem()] }));
   const removeItem = (idx) => setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
+
   const updateItem = (idx, field, value) => {
     setForm(f => {
       const items = [...f.items];
       items[idx] = { ...items[idx], [field]: value };
+      // When selecting a product, auto-fill price and description
+      if (field === 'product_id') {
+        const prod = products.find(p => p.id === value);
+        if (prod) {
+          items[idx].description = prod.name;
+          items[idx].unit_price = prod.sale_price || 0;
+          items[idx].purchase_price = prod.purchase_price || 0;
+        }
+      }
       return { ...f, items };
     });
   };
@@ -50,6 +62,7 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
 
   const handleSave = async () => {
     if (!form.customer_id) { toast.error('Selecciona un cliente'); return; }
+    if (form.items.length === 0 || !form.items[0].description) { toast.error('Agrega al menos un ítem'); return; }
     setSaving(true);
     const customer = customers.find(c => c.id === form.customer_id);
     const machine = machines.find(m => m.id === form.machine_id);
@@ -76,14 +89,14 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div>
             <Label>Cliente *</Label>
-            <Select value={form.customer_id} onValueChange={v => setForm(f => ({ ...f, customer_id: v }))}>
+            <Select value={form.customer_id} onValueChange={v => setForm(f => ({ ...f, customer_id: v, machine_id: '' }))}>
               <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
               <SelectContent>{customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div>
             <Label>Tipo de cotización</Label>
-            <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
+            <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v, machine_id: '', items: [emptyItem()] }))}>
               <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="venta">Venta de productos</SelectItem>
@@ -113,20 +126,46 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
         {/* Items */}
         <div className="mt-5">
           <div className="flex items-center justify-between mb-2">
-            <Label className="text-sm font-semibold">Ítems / Productos</Label>
+            <Label className="text-sm font-semibold">
+              {form.type === 'venta' ? 'Productos del inventario' : 'Repuestos / Materiales'}
+            </Label>
             <Button variant="outline" size="sm" onClick={addItem} className="gap-1 text-xs">
               <Plus className="h-3 w-3" /> Agregar
             </Button>
           </div>
+
+          {/* Column headers */}
+          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 mb-1 px-1">
+            <span className="text-xs text-muted-foreground">{form.type === 'venta' ? 'Producto' : 'Descripción'}</span>
+            <span className="text-xs text-muted-foreground w-20 text-center">Cant</span>
+            <span className="text-xs text-muted-foreground w-28 text-center">Precio</span>
+            <span className="text-xs text-muted-foreground w-8"></span>
+          </div>
+
           <div className="space-y-2">
             {form.items.map((item, idx) => (
               <div key={idx} className="flex items-center gap-2">
-                <Input
-                  value={item.description}
-                  onChange={e => updateItem(idx, 'description', e.target.value)}
-                  className="bg-secondary border-border flex-1"
-                  placeholder="Descripción del ítem"
-                />
+                {form.type === 'venta' ? (
+                  <Select value={item.product_id} onValueChange={v => updateItem(idx, 'product_id', v)}>
+                    <SelectTrigger className="bg-secondary border-border flex-1">
+                      <SelectValue placeholder="Seleccionar producto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name} — Stock: {p.stock || 0}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={item.description}
+                    onChange={e => updateItem(idx, 'description', e.target.value)}
+                    className="bg-secondary border-border flex-1"
+                    placeholder="Descripción del servicio o repuesto"
+                  />
+                )}
                 <Input
                   type="number" min="1" value={item.quantity}
                   onChange={e => updateItem(idx, 'quantity', Number(e.target.value))}
@@ -139,7 +178,7 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
                   className="w-28 bg-secondary border-border"
                   placeholder="Precio"
                 />
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeItem(idx)}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive flex-shrink-0" onClick={() => removeItem(idx)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
