@@ -21,9 +21,15 @@ export default function Users() {
   const isAdmin = currentUser?.role === 'admin';
 
   async function load() {
-    const u = await base44.entities.User.list();
-    setUsers(u);
-    setLoading(false);
+    try {
+      const u = await base44.entities.User.list();
+      setUsers(u);
+    } catch (e) {
+      // usuarios no-admin no pueden listar, se muestra solo la card del usuario actual
+      if (currentUser) setUsers([currentUser]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
@@ -31,12 +37,17 @@ export default function Users() {
   const handleInvite = async () => {
     if (!inviteForm.email) { toast.error('Ingresa un email'); return; }
     setInviting(true);
-    await base44.users.inviteUser(inviteForm.email, inviteForm.role);
-    toast.success(`Invitación enviada a ${inviteForm.email}`);
-    setInviteForm({ email: '', role: 'user' });
-    setInviting(false);
-    setInviteOpen(false);
-    load();
+    try {
+      await base44.users.inviteUser(inviteForm.email, inviteForm.role);
+      toast.success(`Invitación enviada a ${inviteForm.email}`);
+      setInviteForm({ email: '', role: 'user' });
+      setInviteOpen(false);
+      load();
+    } catch (e) {
+      toast.error('Error al enviar invitación: ' + e.message);
+    } finally {
+      setInviting(false);
+    }
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
