@@ -80,6 +80,7 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
   const handleCustomerInputChange = (val) => {
     setCustomerInput(val);
     setIsNewCustomer(false);
+    setForm(f => ({ ...f, customer_id: '' }));
   };
 
   const handleCreateNewCustomer = () => {
