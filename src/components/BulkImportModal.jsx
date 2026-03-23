@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as XLSX from 'xlsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
@@ -135,23 +136,12 @@ const CONFIGS = {
 };
 
 function downloadTemplate(config) {
-  // Use tab-separated values for Excel compatibility (works universally)
   const headers = config.columns.map(c => c.key);
   const example = config.columns.map(c => c.example);
-  const emptyRows = Array(4).fill(config.columns.map(() => '').join('\t'));
-  const rows = [
-    headers.join('\t'),
-    example.join('\t'),
-    ...emptyRows,
-  ];
-  const tsvContent = rows.join('\n');
-  const blob = new Blob(['\uFEFF' + tsvContent], { type: 'text/tab-separated-values;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `plantilla_${config.entity.toLowerCase()}.tsv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
+  XLSX.writeFile(wb, `plantilla_${config.entity.toLowerCase()}.xlsx`);
 }
 
 export default function BulkImportModal({ open, onOpenChange, entityType, customers = [], onSuccess }) {
