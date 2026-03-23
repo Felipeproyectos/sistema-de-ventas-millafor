@@ -23,6 +23,7 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
   const [saving, setSaving] = useState(false);
   const [customerInput, setCustomerInput] = useState('');
   const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [customerData, setCustomerData] = useState({ phone: '', email: '', address: '', rut: '' });
 
   useEffect(() => {
     if (open) {
@@ -36,6 +37,7 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
       });
       setCustomerInput('');
       setIsNewCustomer(false);
+      setCustomerData({ phone: '', email: '', address: '', rut: '' });
     }
   }, [open]);
 
@@ -86,12 +88,19 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
 
   const handleSave = async () => {
     if (!customerInput) { toast.error('Ingresa un cliente'); return; }
+    if (isNewCustomer && !customerData.phone) { toast.error('El teléfono del cliente es obligatorio'); return; }
     if (form.items.length === 0 || !form.items[0].description) { toast.error('Agrega al menos un ítem'); return; }
     setSaving(true);
     let customerId = form.customer_id;
     let customerName = customerInput;
     if (isNewCustomer) {
-      const newCustomer = await base44.entities.Customer.create({ name: customerName });
+      const newCustomer = await base44.entities.Customer.create({
+        name: customerName,
+        phone: customerData.phone,
+        email: customerData.email,
+        address: customerData.address,
+        notes: customerData.rut ? `RUT: ${customerData.rut}` : ''
+      });
       customerId = newCustomer.id;
     }
     const machine = machines.find(m => m.id === form.machine_id);
@@ -144,7 +153,51 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
              </div>
            )}
            {isNewCustomer && <p className="text-xs text-accent mt-1">✓ Nuevo cliente: {customerInput}</p>}
-          </div>
+           </div>
+           {isNewCustomer && (
+           <div className="sm:col-span-2 mt-4 pt-4 border-t border-border space-y-3">
+             <p className="text-xs font-semibold text-muted-foreground">Información del cliente</p>
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+               <div>
+                 <Label className="text-xs">Teléfono *</Label>
+                 <Input
+                   value={customerData.phone}
+                   onChange={e => setCustomerData(d => ({ ...d, phone: e.target.value }))}
+                   placeholder="+56 9 1234 5678"
+                   className="bg-secondary border-border text-sm"
+                 />
+               </div>
+               <div>
+                 <Label className="text-xs">Email</Label>
+                 <Input
+                   type="email"
+                   value={customerData.email}
+                   onChange={e => setCustomerData(d => ({ ...d, email: e.target.value }))}
+                   placeholder="cliente@email.com"
+                   className="bg-secondary border-border text-sm"
+                 />
+               </div>
+               <div>
+                 <Label className="text-xs">RUT</Label>
+                 <Input
+                   value={customerData.rut}
+                   onChange={e => setCustomerData(d => ({ ...d, rut: e.target.value }))}
+                   placeholder="XX.XXX.XXX-X"
+                   className="bg-secondary border-border text-sm"
+                 />
+               </div>
+               <div>
+                 <Label className="text-xs">Dirección</Label>
+                 <Input
+                   value={customerData.address}
+                   onChange={e => setCustomerData(d => ({ ...d, address: e.target.value }))}
+                   placeholder="Dirección del cliente"
+                   className="bg-secondary border-border text-sm"
+                 />
+               </div>
+             </div>
+           </div>
+           )}
           <div>
             <Label>Tipo de cotización</Label>
             <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v, machine_id: '', items: [emptyItem()] }))}>
