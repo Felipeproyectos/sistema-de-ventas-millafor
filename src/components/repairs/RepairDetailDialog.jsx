@@ -73,7 +73,9 @@ export default function RepairDetailDialog({ repair, onClose }) {
       doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
       if (repair.machine_name) { doc.text(`Equipo: ${repair.machine_name}`, ml, y); y+=5; }
       const statusLabel = {pendiente:'Pendiente',en_proceso:'En Proceso',finalizada:'Finalizada'}[repair.status]||repair.status;
-      doc.text(`Estado: ${statusLabel}`, ml, y); y+=8;
+      doc.text(`Estado: ${statusLabel}`, ml, y); y+=5;
+      if (repair.attended_by) { doc.text(`Atendido por: ${repair.attended_by}`, ml, y); y+=5; }
+      y+=3;
 
       // Problem / solution
       if (repair.problem_description) {
@@ -170,6 +172,7 @@ export default function RepairDetailDialog({ repair, onClose }) {
               <div><span className="text-muted-foreground">Equipo:</span> <span className="font-medium">{repair.machine_name}</span></div>
               <div><span className="text-muted-foreground">Fecha:</span> <span className="font-medium">{repair.date}</span></div>
               <div><span className="text-muted-foreground">Total:</span> <span className="font-bold text-primary">${(repair.total || 0).toLocaleString('es-CL')}</span></div>
+              {repair.attended_by && <div className="col-span-2"><span className="text-muted-foreground">Atendido por:</span> <span className="font-medium">{repair.attended_by}</span></div>}
               {repair.abono > 0 && (
                 <>
                   <div><span className="text-muted-foreground">Abono:</span> <span className="font-medium text-accent">${(repair.abono || 0).toLocaleString('es-CL')}</span></div>
