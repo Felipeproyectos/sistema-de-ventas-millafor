@@ -19,7 +19,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState('select');
   const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', email: '', address: '' });
-  const [newMachine, setNewMachine] = useState({ name: '', brand: '', model: '', serial_number: '' });
+  const [newMachine, setNewMachine] = useState({ name: '', brand: '', model: '', type: '', serial_number: '' });
 
   useEffect(() => {
     if (repair) {
@@ -105,7 +105,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
         customer_id: form.customer_id
       });
       setForm(f => ({ ...f, machine_id: created.id }));
-      setNewMachine({ name: '', brand: '', model: '', serial_number: '' });
+      setNewMachine({ name: '', brand: '', model: '', type: '', serial_number: '' });
       toast.success('Equipo creado');
     } catch (err) {
       toast.error('Error: ' + err.message);
@@ -262,6 +262,12 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
                     placeholder="Modelo"
                     value={newMachine.model}
                     onChange={e => setNewMachine(m => ({ ...m, model: e.target.value }))}
+                    className="bg-background border-border"
+                  />
+                  <Input
+                    placeholder="Tipo"
+                    value={newMachine.type}
+                    onChange={e => setNewMachine(m => ({ ...m, type: e.target.value }))}
                     className="bg-background border-border"
                   />
                   <Input
