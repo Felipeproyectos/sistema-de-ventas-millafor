@@ -68,7 +68,9 @@ export default function SaleDetailDialog({ sale, onClose }) {
 
       // Client
       doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
-      doc.text((sale.customer_name||'-').toUpperCase(),ml,y); y+=8;
+      doc.text((sale.customer_name||'-').toUpperCase(),ml,y); y+=5;
+      if (sale.attended_by) { doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY); doc.text(`Atendido por: ${sale.attended_by}`, ml, y); y+=5; }
+      y+=3;
 
       // Items table
       const COL={d:ml,q:112,u:140,t:170}; const ROW_H=8;
@@ -146,6 +148,7 @@ export default function SaleDetailDialog({ sale, onClose }) {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div><span className="text-muted-foreground">Cliente:</span> <span className="font-medium">{sale.customer_name}</span></div>
               <div><span className="text-muted-foreground">Fecha:</span> <span className="font-medium">{sale.date}</span></div>
+              {sale.attended_by && <div className="col-span-2"><span className="text-muted-foreground">Atendido por:</span> <span className="font-medium">{sale.attended_by}</span></div>}
             </div>
 
             {sale.items?.length > 0 && (
