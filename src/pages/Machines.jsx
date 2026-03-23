@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Monitor, Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Monitor, Plus, Search, Pencil, Trash2, Upload } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
+import BulkImportModal from '../components/BulkImportModal';
 import { toast } from "sonner";
 
 export default function Machines() {
@@ -20,6 +21,7 @@ export default function Machines() {
   const [editMachine, setEditMachine] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [form, setForm] = useState({ name: '', brand: '', model: '', serial_number: '', customer_id: '', notes: '' });
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   async function load() {
     const [m, c] = await Promise.all([base44.entities.Machine.list(), base44.entities.Customer.list()]);
@@ -68,6 +70,9 @@ export default function Machines() {
   return (
     <div className="space-y-4">
       <PageHeader title="Equipos" description="Gestión de máquinas y equipos">
+        <Button variant="outline" onClick={() => setBulkOpen(true)} className="gap-2">
+          <Upload className="h-4 w-4" /> Carga masiva
+        </Button>
         <Button onClick={() => { setEditMachine(null); setFormOpen(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> Nuevo Equipo
         </Button>
@@ -154,6 +159,14 @@ export default function Machines() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BulkImportModal
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        entityType="machines"
+        customers={customers}
+        onSuccess={load}
+      />
     </div>
   );
 }
