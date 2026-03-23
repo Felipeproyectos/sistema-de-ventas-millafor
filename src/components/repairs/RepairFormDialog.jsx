@@ -29,7 +29,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
         parts_used: repair.parts_used || [],
         labor_cost: repair.labor_cost || 0,
         abono: repair.abono || 0,
-        notes: repair.notes || ',
+        notes: repair.notes || '',
       });
     } else {
       setForm({
