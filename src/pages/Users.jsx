@@ -80,6 +80,7 @@ export default function Users() {
           type: 'Venta',
           date: s.date||'-',
           user: s.created_by||'-',
+          attended_by: s.attended_by||'',
           items: (s.items||[]).map(i=>({ product_name: i.product_name, quantity: i.quantity, unit_price: i.unit_price })),
           laborCost: 0,
           total: s.total||0,
@@ -89,6 +90,7 @@ export default function Users() {
           type: 'Reparación',
           date: r.date||'-',
           user: r.created_by||'-',
+          attended_by: r.attended_by||'',
           items: (r.parts_used||[]).map(p=>({ product_name: p.product_name, quantity: p.quantity, unit_price: p.unit_price })),
           laborCost: r.labor_cost||0,
           total: r.total||0,
@@ -210,6 +212,7 @@ export default function Users() {
           doc.text(`#${tx.orderNum}`, ml+2, y+5);
           doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
           doc.text(tx.type, ml+2, y+9);
+          if (tx.attended_by) doc.text(`Atendido: ${tx.attended_by}`, ml+2, y+13);
           doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...DARK);
           doc.text(tx.date, ml+36, y+5);
 
