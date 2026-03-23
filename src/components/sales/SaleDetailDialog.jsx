@@ -59,51 +59,53 @@ export default function SaleDetailDialog({ sale, onClose }) {
   };
 
   return (
-    <Dialog open={!!sale} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-lg bg-card border-border">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>Venta #{sale.order_number || sale.id?.substring(0, 6)}</span>
-            <StatusBadge status={sale.status} />
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={!!sale} onOpenChange={() => onClose()}>
+        <DialogContent className="max-w-lg bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Venta #{sale.order_number || sale.id?.substring(0, 6)}</span>
+              <StatusBadge status={sale.status} />
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4 mt-2">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div><span className="text-muted-foreground">Cliente:</span> <span className="font-medium">{sale.customer_name}</span></div>
-            <div><span className="text-muted-foreground">Fecha:</span> <span className="font-medium">{sale.date}</span></div>
-          </div>
-
-          {sale.items?.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Productos</p>
-              <div className="space-y-1">
-                {sale.items.map((item, i) => (
-                  <div key={i} className="flex justify-between text-sm bg-secondary/30 rounded-lg px-3 py-2">
-                    <span>{item.product_name} x{item.quantity}</span>
-                    <span className="font-medium">${((item.quantity || 0) * (item.unit_price || 0)).toLocaleString('es-CL')}</span>
-                  </div>
-                ))}
-              </div>
+          <div className="space-y-4 mt-2">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><span className="text-muted-foreground">Cliente:</span> <span className="font-medium">{sale.customer_name}</span></div>
+              <div><span className="text-muted-foreground">Fecha:</span> <span className="font-medium">{sale.date}</span></div>
             </div>
-          )}
 
-          <div className="flex justify-between items-center bg-primary/10 rounded-lg p-3">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <span className="text-xl font-bold text-primary">${(sale.total || 0).toLocaleString('es-CL')}</span>
+            {sale.items?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Productos</p>
+                <div className="space-y-1">
+                  {sale.items.map((item, i) => (
+                    <div key={i} className="flex justify-between text-sm bg-secondary/30 rounded-lg px-3 py-2">
+                      <span>{item.product_name} x{item.quantity}</span>
+                      <span className="font-medium">${((item.quantity || 0) * (item.unit_price || 0)).toLocaleString('es-CL')}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center bg-primary/10 rounded-lg p-3">
+              <span className="text-sm text-muted-foreground">Total</span>
+              <span className="text-xl font-bold text-primary">${(sale.total || 0).toLocaleString('es-CL')}</span>
+            </div>
+
+            <Button onClick={handlePrint} variant="outline" className="w-full gap-2">
+              <Printer className="h-4 w-4" /> Ver PDF
+            </Button>
           </div>
-
-          <Button onClick={handlePrint} variant="outline" className="w-full gap-2">
-            <Printer className="h-4 w-4" /> Ver PDF
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-    <PdfPreviewModal
-      open={pdfPreview.open}
-      onOpenChange={open => setPdfPreview(p => ({ ...p, open }))}
-      blobUrl={pdfPreview.url}
-      filename={pdfPreview.filename}
-    />
+        </DialogContent>
+      </Dialog>
+      <PdfPreviewModal
+        open={pdfPreview.open}
+        onOpenChange={open => setPdfPreview(p => ({ ...p, open }))}
+        blobUrl={pdfPreview.url}
+        filename={pdfPreview.filename}
+      />
+    </>
   );
 }
