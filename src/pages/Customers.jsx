@@ -1,0 +1,137 @@
+import { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Users, Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import PageHeader from '../components/PageHeader';
+import EmptyState from '../components/EmptyState';
+import { toast } from "sonner";
+
+export default function Customers() {
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [formOpen, setFormOpen] = useState(false);
+  const [editCustomer, setEditCustomer] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
+  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', notes: '' });
+
+  async function load() {
+    const c = await base44.entities.Customer.list();
+    setCustomers(c);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (editCustomer) {
+      setForm({ name: editCustomer.name || '', email: editCustomer.email || '', phone: editCustomer.phone || '', address: editCustomer.address || '', notes: editCustomer.notes || '' });
+    } else {
+      setForm({ name: '', email: '', phone: '', address: '', notes: '' });
+    }
+  }, [editCustomer, formOpen]);
+
+  const handleSave = async () => {
+    if (!form.name) { toast.error('El nombre es obligatorio'); return; }
+    if (editCustomer) {
+      await base44.entities.Customer.update(editCustomer.id, form);
+      toast.success('Cliente actualizado');
+    } else {
+      await base44.entities.Customer.create(form);
+      toast.success('Cliente creado');
+    }
+    setFormOpen(false); setEditCustomer(null); load();
+  };
+
+  const handleDelete = async () => {
+    await base44.entities.Customer.delete(deleteId);
+    setDeleteId(null);
+    toast.success('Cliente eliminado');
+    load();
+  };
+
+  const filtered = customers.filter(c =>
+    !search || c.name?.toLowerCase().includes(search.toLowerCase()) || c.email?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <PageHeader title="Clientes" description="Gestión de clientes">
+        <Button onClick={() => { setEditCustomer(null); setFormOpen(true); }} className="gap-2">
+          <Plus className="h-4 w-4" /> Nuevo Cliente
+        </Button>
+      </PageHeader>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Buscar cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-card border-border" />
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={Users} title="Sin clientes" description="Agrega tu primer cliente" />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(c => (
+            <div key={c.id} className="bg-card border border-border rounded-xl p-5 hover:border-primary/30 transition-all">
+              <div className="flex items-start justify-between mb-2">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                  {c.name?.charAt(0)?.toUpperCase()}
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditCustomer(c); setFormOpen(true); }}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(c.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <h3 className="text-sm font-semibold text-foreground">{c.name}</h3>
+              {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
+              {c.phone && <p className="text-xs text-muted-foreground">{c.phone}</p>}
+              {c.address && <p className="text-xs text-muted-foreground mt-1">{c.address}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={formOpen} onOpenChange={v => { setFormOpen(v); if (!v) setEditCustomer(null); }}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader><DialogTitle>{editCustomer ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div><Label>Nombre *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="bg-secondary border-border" /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Email</Label><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="bg-secondary border-border" /></div>
+              <div><Label>Teléfono</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="bg-secondary border-border" /></div>
+            </div>
+            <div><Label>Dirección</Label><Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} className="bg-secondary border-border" /></div>
+            <div><Label>Notas</Label><Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="bg-secondary border-border" /></div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => { setFormOpen(false); setEditCustomer(null); }}>Cancelar</Button>
+            <Button onClick={handleSave}>{editCustomer ? 'Actualizar' : 'Crear'}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
+            <AlertDialogDescription>Esta acción no se puede deshacer.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
