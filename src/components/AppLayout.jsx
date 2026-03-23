@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Wrench, Package, ShoppingCart, Users, Monitor, History, FileText, FileCheck, Settings, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
