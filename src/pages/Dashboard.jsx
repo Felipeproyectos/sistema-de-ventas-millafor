@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Wrench, Package, ShoppingCart, Clock, MapPin, Phone, Mail, Globe } from 'lucide-react';
 import StatCard from '../components/StatCard';
@@ -8,41 +8,20 @@ import RecentActivity from '../components/dashboard/RecentActivity';
 import LowStockAlert from '../components/dashboard/LowStockAlert';
 
 export default function Dashboard() {
-  const [repairs, setRepairs] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [sales, setSales] = useState([]);
-  const [settings, setSettings] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data: repairs = [], isLoading: repairsLoading } = useQuery({ queryKey: ['repairs'], queryFn: () => base44.entities.RepairOrder.list(), staleTime: 1000 * 60 * 5 });
+  const { data: products = [], isLoading: productsLoading } = useQuery({ queryKey: ['products'], queryFn: () => base44.entities.Product.list(), staleTime: 1000 * 60 * 5 });
+  const { data: sales = [], isLoading: salesLoading } = useQuery({ queryKey: ['sales'], queryFn: () => base44.entities.SaleOrder.list(), staleTime: 1000 * 60 * 5 });
+  const { data: settingsList = [], isLoading: settingsLoading } = useQuery({ queryKey: ['settings'], queryFn: () => base44.entities.CompanySettings.list(), staleTime: 1000 * 60 * 30 });
+  
+  const settings = settingsList[0] || null;
+  const loading = repairsLoading || productsLoading || salesLoading || settingsLoading;
 
-  useEffect(() => {
-    async function load() {
-      const [r, p, s, cs] = await Promise.all([
-        base44.entities.RepairOrder.list(),
-        base44.entities.Product.list(),
-        base44.entities.SaleOrder.list(),
-        base44.entities.CompanySettings.list(),
-      ]);
-      setRepairs(r);
-      setProducts(p);
-      setSales(s);
-      if (cs.length) setSettings(cs[0]);
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
 
   const pendingRepairs = repairs.filter(r => r.status === 'pendiente').length;
   const inProgressRepairs = repairs.filter(r => r.status === 'en_proceso').length;
   const totalSalesAmount = sales.reduce((sum, s) => sum + (s.total || 0), 0);
-  const lowStockProducts = products.filter(p => (p.stock || 0) <= (p.min_stock || 5));
+  const lowStockProducts = products?.filter(p => (p.stock || 0) <= (p.min_stock || 5)) || [];
   const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0) +
     repairs.filter(r => r.status === 'finalizada').reduce((sum, r) => sum + (r.total || 0), 0);
 
