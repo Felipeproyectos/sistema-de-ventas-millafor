@@ -19,6 +19,8 @@ export default function Customers() {
   const [editCustomer, setEditCustomer] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', notes: '' });
+  const [showMachineForm, setShowMachineForm] = useState(false);
+  const [machineForm, setMachineForm] = useState({ name: '', brand: '', model: '', type: '', serial_number: '' });
   const [bulkOpen, setBulkOpen] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -37,8 +39,10 @@ export default function Customers() {
       setForm({ name: editCustomer.name || '', email: editCustomer.email || '', phone: editCustomer.phone || '', address: editCustomer.address || '', notes: editCustomer.notes || '' });
     } else {
       setForm({ name: '', email: '', phone: '', address: '', notes: '' });
+      setShowMachineForm(false);
+      setMachineForm({ name: '', brand: '', model: '', type: '', serial_number: '' });
     }
-  }, [editCustomer, formOpen]);
+  }, [editCustomer, formOpen];
 
   const handleNameChange = (value) => {
     setForm(f => ({ ...f, name: value }));
@@ -70,8 +74,14 @@ export default function Customers() {
       await base44.entities.Customer.update(editCustomer.id, form);
       toast.success('Cliente actualizado');
     } else {
-      await base44.entities.Customer.create(form);
-      toast.success('Cliente creado');
+      const created = await base44.entities.Customer.create(form);
+      if (showMachineForm && machineForm.name) {
+        await base44.entities.Machine.create({
+          ...machineForm,
+          customer_id: created.id
+        });
+      }
+      toast.success(showMachineForm && machineForm.name ? 'Cliente y equipo creados' : 'Cliente creado');
     }
     setFormOpen(false); setEditCustomer(null); load();
   };
@@ -172,7 +182,27 @@ export default function Customers() {
             </div>
             <div><Label>Dirección</Label><Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} className="bg-secondary border-border" /></div>
             <div><Label>Notas</Label><Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="bg-secondary border-border" /></div>
-          </div>
+            {!editCustomer && (
+              <div className="border-t pt-4 mt-4">
+                <button type="button" onClick={() => setShowMachineForm(!showMachineForm)} className="text-sm text-primary font-medium mb-3">
+                  {showMachineForm ? '✕ Cancelar crear equipo' : '+ Crear equipo simultáneamente'}
+                </button>
+                {showMachineForm && (
+                  <div className="space-y-3 bg-secondary/20 p-3 rounded-lg">
+                    <div><Label className="text-xs">Nombre equipo</Label><Input value={machineForm.name} onChange={e => setMachineForm(m => ({ ...m, name: e.target.value }))} className="bg-secondary border-border text-sm" /></div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><Label className="text-xs">Marca</Label><Input value={machineForm.brand} onChange={e => setMachineForm(m => ({ ...m, brand: e.target.value }))} className="bg-secondary border-border text-sm" /></div>
+                      <div><Label className="text-xs">Modelo</Label><Input value={machineForm.model} onChange={e => setMachineForm(m => ({ ...m, model: e.target.value }))} className="bg-secondary border-border text-sm" /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><Label className="text-xs">Tipo</Label><Input value={machineForm.type} onChange={e => setMachineForm(m => ({ ...m, type: e.target.value }))} className="bg-secondary border-border text-sm" /></div>
+                      <div><Label className="text-xs">N° de serie</Label><Input value={machineForm.serial_number} onChange={e => setMachineForm(m => ({ ...m, serial_number: e.target.value }))} className="bg-secondary border-border text-sm" /></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => { setFormOpen(false); setEditCustomer(null); }}>Cancelar</Button>
             <Button onClick={handleSave}>{editCustomer ? 'Actualizar' : 'Crear'}</Button>
