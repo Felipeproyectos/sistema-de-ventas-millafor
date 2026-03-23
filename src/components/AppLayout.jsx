@@ -1,10 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard, Wrench, Package, ShoppingCart,
-  History, FileText, Settings, FileCheck,
-  Users, Monitor, ChevronLeft, ChevronRight, Menu, X } from
-'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -24,6 +20,11 @@ export default function AppLayout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -88,12 +89,42 @@ export default function AppLayout() {
           })}
         </nav>
 
+        {/* User info */}
+        {user && (
+          <div className={cn(
+            "border-t border-border px-3 py-3",
+            collapsed ? "flex justify-center" : ""
+          )}>
+            {!collapsed ? (
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">
+                  {user.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">{user.full_name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate capitalize">{user.role || 'usuario'}</p>
+                </div>
+                <button
+                  onClick={() => base44.auth.logout()}
+                  className="text-muted-foreground hover:text-destructive transition-colors"
+                  title="Cerrar sesión"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+              </div>
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
+                {user.full_name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Collapse button */}
         <div className="hidden lg:flex p-3 border-t border-border">
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="w-full flex items-center justify-center py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-            
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </button>
         </div>
