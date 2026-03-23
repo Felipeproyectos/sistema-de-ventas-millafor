@@ -4,10 +4,12 @@ import { Printer } from 'lucide-react';
 import StatusBadge from '../StatusBadge';
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { createPdfDoc, addTableHeader, formatCurrency } from '../../lib/pdfUtils';
+import { createPdfDoc, addTableHeader, formatCurrency, getPdfBlobUrl } from '../../lib/pdfUtils';
+import PdfPreviewModal from '../PdfPreviewModal';
 
 export default function SaleDetailDialog({ sale, onClose }) {
   const [settings, setSettings] = useState(null);
+  const [pdfPreview, setPdfPreview] = useState({ open: false, url: null, filename: '' });
 
   useEffect(() => {
     base44.entities.CompanySettings.list().then(s => { if (s.length) setSettings(s[0]); });
@@ -52,7 +54,8 @@ export default function SaleDetailDialog({ sale, onClose }) {
     doc.setFontSize(12);
     doc.text(`TOTAL: ${formatCurrency(sale.total)}`, pageWidth - 15, y, { align: 'right' });
 
-    doc.save(`venta-${sale.order_number || sale.id?.substring(0, 6)}.pdf`);
+    const filename = `venta-${sale.order_number || sale.id?.substring(0, 6)}.pdf`;
+    setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });
   };
 
   return (
@@ -91,10 +94,16 @@ export default function SaleDetailDialog({ sale, onClose }) {
           </div>
 
           <Button onClick={handlePrint} variant="outline" className="w-full gap-2">
-            <Printer className="h-4 w-4" /> Imprimir PDF
+            <Printer className="h-4 w-4" /> Ver PDF
           </Button>
         </div>
       </DialogContent>
     </Dialog>
+    <PdfPreviewModal
+      open={pdfPreview.open}
+      onOpenChange={open => setPdfPreview(p => ({ ...p, open }))}
+      blobUrl={pdfPreview.url}
+      filename={pdfPreview.filename}
+    />
   );
 }

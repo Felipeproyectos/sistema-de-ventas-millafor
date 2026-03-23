@@ -69,6 +69,11 @@ export function checkPageBreak(doc, y, margin = 25) {
   return y;
 }
 
+export function getPdfBlobUrl(doc) {
+  const blob = doc.output('blob');
+  return URL.createObjectURL(blob);
+}
+
 export function formatCurrency(amount) {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(amount || 0);
 }

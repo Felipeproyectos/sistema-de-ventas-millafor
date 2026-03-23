@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PageHeader from '../components/PageHeader';
-import { createPdfDoc, addTableHeader, checkPageBreak, formatCurrency } from '../lib/pdfUtils';
+import { createPdfDoc, addTableHeader, checkPageBreak, formatCurrency, getPdfBlobUrl } from '../lib/pdfUtils';
+import PdfPreviewModal from '../components/PdfPreviewModal';
 
 export default function Reports() {
   const [repairs, setRepairs] = useState([]);
@@ -16,6 +17,11 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [pdfPreview, setPdfPreview] = useState({ open: false, url: null, filename: '' });
+
+  const openPreview = (doc, filename) => {
+    setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });
+  };
 
   useEffect(() => {
     async function load() {
@@ -66,7 +72,7 @@ export default function Reports() {
       y += 5;
     });
 
-    doc.save('reporte-reparaciones.pdf');
+    openPreview(doc, 'reporte-reparaciones.pdf');
   };
 
   const generateSalesReport = () => {
@@ -93,7 +99,7 @@ export default function Reports() {
       y += 5;
     });
 
-    doc.save('reporte-ventas.pdf');
+    openPreview(doc, 'reporte-ventas.pdf');
   };
 
   const generateFinancialReport = () => {
@@ -126,7 +132,7 @@ export default function Reports() {
     doc.text(`TOTAL INGRESOS: ${formatCurrency(totalRevenue)}`, 15, y); y += 5;
     doc.text(`GANANCIA ESTIMADA: ${formatCurrency(repairRevenue + saleProfit)}`, 15, y);
 
-    doc.save('reporte-financiero.pdf');
+    openPreview(doc, 'reporte-financiero.pdf');
   };
 
   const generatePurchaseReport = () => {
@@ -162,7 +168,7 @@ export default function Reports() {
     doc.setFontSize(10);
     doc.text(`Costo estimado de reposición: ${formatCurrency(totalCost)}`, 15, y);
 
-    doc.save('solicitud-compras.pdf');
+    openPreview(doc, 'solicitud-compras.pdf');
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
@@ -198,11 +204,18 @@ export default function Reports() {
             <h3 className="text-sm font-semibold text-foreground mb-1">{card.title}</h3>
             <p className="text-xs text-muted-foreground mb-4">{card.desc}</p>
             <Button onClick={card.action} variant="outline" className="gap-2 w-full">
-              <Download className="h-4 w-4" /> Generar PDF
+              <Download className="h-4 w-4" /> Ver PDF
             </Button>
           </div>
         ))}
       </div>
+
+      <PdfPreviewModal
+        open={pdfPreview.open}
+        onOpenChange={open => setPdfPreview(p => ({ ...p, open }))}
+        blobUrl={pdfPreview.url}
+        filename={pdfPreview.filename}
+      />
     </div>
   );
 }
