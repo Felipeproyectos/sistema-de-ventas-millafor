@@ -358,6 +358,5 @@ export default function Users() {
       blobUrl={pdfPreview.url}
       filename={`reporte-transacciones-${new Date().toISOString().split('T')[0]}.pdf`}
     />
-  </>
   );
 }
