@@ -96,6 +96,12 @@ export default function RepairDetailDialog({ repair, onClose }) {
               <div><span className="text-muted-foreground">Equipo:</span> <span className="font-medium">{repair.machine_name}</span></div>
               <div><span className="text-muted-foreground">Fecha:</span> <span className="font-medium">{repair.date}</span></div>
               <div><span className="text-muted-foreground">Total:</span> <span className="font-bold text-primary">${(repair.total || 0).toLocaleString('es-CL')}</span></div>
+              {repair.abono > 0 && (
+                <>
+                  <div><span className="text-muted-foreground">Abono:</span> <span className="font-medium text-accent">${(repair.abono || 0).toLocaleString('es-CL')}</span></div>
+                  <div><span className="text-muted-foreground">Saldo:</span> <span className={`font-bold ${(repair.total - repair.abono) <= 0 ? 'text-accent' : 'text-warning'}`}>${((repair.total || 0) - (repair.abono || 0)).toLocaleString('es-CL')}</span></div>
+                </>
+              )}
             </div>
 
             {repair.problem_description && (

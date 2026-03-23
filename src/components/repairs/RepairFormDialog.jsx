@@ -13,7 +13,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
   const [form, setForm] = useState({
     customer_id: '', machine_id: '', date: new Date().toISOString().split('T')[0],
     problem_description: '', solution_description: '', status: 'pendiente',
-    parts_used: [], labor_cost: 0, notes: ''
+    parts_used: [], labor_cost: 0, abono: 0, notes: ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -28,13 +28,14 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
         status: repair.status || 'pendiente',
         parts_used: repair.parts_used || [],
         labor_cost: repair.labor_cost || 0,
-        notes: repair.notes || '',
+        abono: repair.abono || 0,
+        notes: repair.notes || ',
       });
     } else {
       setForm({
         customer_id: '', machine_id: '', date: new Date().toISOString().split('T')[0],
         problem_description: '', solution_description: '', status: 'pendiente',
-        parts_used: [], labor_cost: 0, notes: ''
+        parts_used: [], labor_cost: 0, abono: 0, notes: ''
       });
     }
   }, [repair, open]);
@@ -64,6 +65,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
 
   const partsTotal = form.parts_used.reduce((s, p) => s + (p.quantity || 0) * (p.unit_price || 0), 0);
   const total = partsTotal + (Number(form.labor_cost) || 0);
+  const saldo = total - (Number(form.abono) || 0);
 
   const customerMachines = machines.filter(m => !form.customer_id || m.customer_id === form.customer_id);
 
@@ -82,6 +84,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
       customer_name: customer?.name || '',
       machine_name: machine?.name || '',
       total,
+      abono: Number(form.abono) || 0,
       order_number: repair?.order_number || `OR-${Date.now().toString().slice(-6)}`,
     };
 
@@ -206,11 +209,17 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
             <Label>Mano de obra</Label>
             <Input type="number" value={form.labor_cost} onChange={e => setForm(f => ({ ...f, labor_cost: Number(e.target.value) }))} className="bg-secondary border-border" />
           </div>
-          <div className="flex items-end">
-            <div className="bg-primary/10 rounded-lg p-3 w-full text-center">
-              <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-xl font-bold text-primary">${total.toLocaleString('es-CL')}</p>
-            </div>
+          <div>
+            <Label>Abono / Anticipo</Label>
+            <Input type="number" value={form.abono} onChange={e => setForm(f => ({ ...f, abono: Number(e.target.value) }))} className="bg-secondary border-border" placeholder="0" />
+          </div>
+          <div className="bg-primary/10 rounded-lg p-3 text-center">
+            <p className="text-xs text-muted-foreground">Total</p>
+            <p className="text-xl font-bold text-primary">${total.toLocaleString('es-CL')}</p>
+          </div>
+          <div className={`rounded-lg p-3 text-center ${saldo <= 0 ? 'bg-accent/10' : 'bg-warning/10'}`}>
+            <p className="text-xs text-muted-foreground">Saldo pendiente</p>
+            <p className={`text-xl font-bold ${saldo <= 0 ? 'text-accent' : 'text-warning'}`}>${saldo.toLocaleString('es-CL')}</p>
           </div>
         </div>
 

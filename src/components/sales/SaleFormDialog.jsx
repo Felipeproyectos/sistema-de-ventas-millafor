@@ -11,13 +11,13 @@ import { toast } from "sonner";
 
 export default function SaleFormDialog({ open, onOpenChange, customers, products, onSaved }) {
   const [form, setForm] = useState({
-    customer_id: '', date: new Date().toISOString().split('T')[0], items: [], discount: 0, notes: ''
+    customer_id: '', date: new Date().toISOString().split('T')[0], items: [], discount: 0, abono: 0, notes: ''
   });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setForm({ customer_id: '', date: new Date().toISOString().split('T')[0], items: [], discount: 0, notes: '' });
+      setForm({ customer_id: '', date: new Date().toISOString().split('T')[0], items: [], discount: 0, abono: 0, notes: '' });
     }
   }, [open]);
 
@@ -47,6 +47,7 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
 
   const subtotal = form.items.reduce((s, i) => s + (i.quantity || 0) * (i.unit_price || 0), 0);
   const total = subtotal - (Number(form.discount) || 0);
+  const saldo = total - (Number(form.abono) || 0);
 
   const handleSave = async () => {
     if (!form.customer_id) { toast.error('Selecciona un cliente'); return; }
@@ -71,6 +72,7 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
       order_number: `VT-${Date.now().toString().slice(-6)}`,
       subtotal,
       total,
+      abono: Number(form.abono) || 0,
       status: 'completada',
     });
 
@@ -131,11 +133,17 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
             <Label>Descuento</Label>
             <Input type="number" value={form.discount} onChange={e => setForm(f => ({ ...f, discount: Number(e.target.value) }))} className="bg-secondary border-border" />
           </div>
-          <div className="flex items-end">
-            <div className="bg-primary/10 rounded-lg p-3 w-full text-center">
-              <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-xl font-bold text-primary">${total.toLocaleString('es-CL')}</p>
-            </div>
+          <div>
+            <Label>Abono / Anticipo</Label>
+            <Input type="number" value={form.abono} onChange={e => setForm(f => ({ ...f, abono: Number(e.target.value) }))} className="bg-secondary border-border" placeholder="0" />
+          </div>
+          <div className="bg-primary/10 rounded-lg p-3 text-center">
+            <p className="text-xs text-muted-foreground">Total</p>
+            <p className="text-xl font-bold text-primary">${total.toLocaleString('es-CL')}</p>
+          </div>
+          <div className={`rounded-lg p-3 text-center ${saldo <= 0 ? 'bg-accent/10' : 'bg-warning/10'}`}>
+            <p className="text-xs text-muted-foreground">Saldo pendiente</p>
+            <p className={`text-xl font-bold ${saldo <= 0 ? 'text-accent' : 'text-warning'}`}>${saldo.toLocaleString('es-CL')}</p>
           </div>
         </div>
 

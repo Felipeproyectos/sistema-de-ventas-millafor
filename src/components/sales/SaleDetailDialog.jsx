@@ -93,6 +93,18 @@ export default function SaleDetailDialog({ sale, onClose }) {
               <span className="text-sm text-muted-foreground">Total</span>
               <span className="text-xl font-bold text-primary">${(sale.total || 0).toLocaleString('es-CL')}</span>
             </div>
+            {sale.abono > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex justify-between items-center bg-accent/10 rounded-lg p-3">
+                  <span className="text-sm text-muted-foreground">Abono</span>
+                  <span className="text-lg font-bold text-accent">${(sale.abono || 0).toLocaleString('es-CL')}</span>
+                </div>
+                <div className={`flex justify-between items-center rounded-lg p-3 ${(sale.total - sale.abono) <= 0 ? 'bg-accent/10' : 'bg-warning/10'}`}>
+                  <span className="text-sm text-muted-foreground">Saldo</span>
+                  <span className={`text-lg font-bold ${(sale.total - sale.abono) <= 0 ? 'text-accent' : 'text-warning'}`}>${((sale.total || 0) - (sale.abono || 0)).toLocaleString('es-CL')}</span>
+                </div>
+              </div>
+            )}
 
             <Button onClick={handlePrint} variant="outline" className="w-full gap-2">
               <Printer className="h-4 w-4" /> Ver PDF
