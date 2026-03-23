@@ -20,6 +20,7 @@ export default function Users() {
   const [inviting, setInviting] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [pdfPreview, setPdfPreview] = useState({ open: false, url: null });
+  const [selectedUserEmail, setSelectedUserEmail] = useState('');
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -95,7 +96,7 @@ export default function Users() {
         })),
       ];
 
-      // Group by user (filter by current user if not admin)
+      // Group by user, then filter by selected
       const byUser = {};
       const userEmail = currentUser?.email;
       transactions
@@ -104,6 +105,9 @@ export default function Users() {
           if (!byUser[t.user]) byUser[t.user] = [];
           byUser[t.user].push(t);
         });
+
+      // Filter to selected user if provided
+      const filteredByUser = selectedUserEmail ? { [selectedUserEmail]: byUser[selectedUserEmail] || [] } : byUser;
 
       // ── PAGE HEADER ──────────────────────────────────────
       const drawPageHeader = async (isFirst) => {
@@ -146,7 +150,7 @@ export default function Users() {
 
       let grandTotal = 0;
 
-      const userEntries = Object.entries(byUser);
+      const userEntries = Object.entries(filteredByUser);
       for (let ui=0; ui < userEntries.length; ui++) {
         const [userEmail, txs] = userEntries[ui];
         const u = allUsers.find(u => u.email === userEmail);
@@ -262,6 +266,15 @@ export default function Users() {
       <PageHeader title="Usuarios" description="Gestión de acceso a la aplicación">
         {(isAdmin || true) && (
           <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Select value={selectedUserEmail} onValueChange={setSelectedUserEmail}>
+                <SelectTrigger className="w-48 bg-secondary border-border"><SelectValue placeholder="Todos los usuarios" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={null}>Todos los usuarios</SelectItem>
+                  {users.map(u => <SelectItem key={u.id} value={u.email}>{u.full_name} ({u.email})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
             <Button onClick={handleGenerateReport} disabled={generatingReport} variant="outline" className="gap-2">
               {generatingReport ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
               {generatingReport ? 'Generando...' : 'Reporte PDF'}
