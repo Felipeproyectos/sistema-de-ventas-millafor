@@ -1,15 +1,16 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer } from 'lucide-react';
+import { Printer, Loader2 } from 'lucide-react';
 import StatusBadge from '../StatusBadge';
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { createPdfDoc, addTableHeader, formatCurrency, getPdfBlobUrl } from '../../lib/pdfUtils';
+import { getPdfBlobUrl } from '../../lib/pdfUtils';
 import PdfPreviewModal from '../PdfPreviewModal';
 
 export default function RepairDetailDialog({ repair, onClose }) {
   const [settings, setSettings] = useState(null);
   const [pdfPreview, setPdfPreview] = useState({ open: false, url: null, filename: '' });
+  const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     base44.entities.CompanySettings.list().then(s => { if (s.length) setSettings(s[0]); });
@@ -17,75 +18,139 @@ export default function RepairDetailDialog({ repair, onClose }) {
 
   if (!repair) return null;
 
-  const handlePrint = () => {
-    const { doc, y: startY, pageWidth } = createPdfDoc(settings, 'ORDEN DE REPARACIÓN');
-    let y = startY;
+  const handlePrint = async () => {
+    setPrinting(true);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pw = doc.internal.pageSize.getWidth();
+      const ph = doc.internal.pageSize.getHeight();
 
-    doc.setFontSize(10);
-    doc.text(`Orden: #${repair.order_number || repair.id?.substring(0, 6)}`, 15, y);
-    doc.text(`Fecha: ${repair.date || '-'}`, pageWidth - 15, y, { align: 'right' });
-    y += 6;
-    doc.text(`Cliente: ${repair.customer_name || '-'}`, 15, y); y += 5;
-    doc.text(`Equipo: ${repair.machine_name || '-'}`, 15, y); y += 5;
-    doc.text(`Estado: ${repair.status}`, 15, y); y += 8;
+      const hexToRgb = (hex) => [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+      const ACCENT = settings?.accent_color ? hexToRgb(settings.accent_color) : [214, 90, 30];
+      const DARK = [30,30,30], GRAY = [110,110,110], WHITE = [255,255,255], LGRAY = [245,245,245];
+      const ml = 14, mr = pw - 14;
 
-    if (repair.problem_description) {
-      doc.setFont(undefined, 'bold');
-      doc.text('Problema:', 15, y); y += 5;
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(9);
-      const lines = doc.splitTextToSize(repair.problem_description, pageWidth - 30);
-      doc.text(lines, 15, y); y += lines.length * 4 + 4;
-    }
+      // Top bar
+      doc.setFillColor(...ACCENT); doc.rect(0, 0, pw, 3, 'F');
 
-    if (repair.solution_description) {
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'bold');
-      doc.text('Solución:', 15, y); y += 5;
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(9);
-      const lines = doc.splitTextToSize(repair.solution_description, pageWidth - 30);
-      doc.text(lines, 15, y); y += lines.length * 4 + 4;
-    }
+      // Logo
+      let headerBottom = 14;
+      if (settings?.logo_url) {
+        try {
+          const img = await new Promise((res, rej) => { const i = new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=rej; i.src=settings.logo_url; });
+          const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
+          c.getContext('2d').drawImage(img,0,0);
+          doc.addImage(c.toDataURL('image/png'),'PNG',ml,6,24,24);
+          headerBottom = 32;
+        } catch {}
+      }
+      const nameX = settings?.logo_url ? ml+27 : ml;
+      doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(...DARK);
+      doc.text((settings?.company_name||'EMPRESA').toUpperCase(), nameX, 16);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+      if (settings?.address) doc.text(settings.address, nameX, 21);
+      if (settings?.phone)   doc.text(settings.phone,   nameX, 26);
+      if (settings?.email)   doc.text(settings.email,   nameX, 31);
 
-    if (repair.parts_used?.length) {
-      doc.setFontSize(10);
-      y += 3;
-      y = addTableHeader(doc, y, [
-        { label: 'Repuesto', x: 17 },
-        { label: 'Cant', x: 110 },
-        { label: 'Precio', x: 135 },
-        { label: 'Subtotal', x: 165 },
-      ], pageWidth);
+      // Title box
+      doc.setFillColor(...LGRAY); doc.roundedRect(pw-58,5,46,28,2,2,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...DARK);
+      doc.text('ORDEN DE', pw-35, 14, {align:'center'});
+      doc.text('REPARACIÓN', pw-35, 20, {align:'center'});
+      doc.setFontSize(9); doc.setTextColor(...ACCENT);
+      doc.text(`N° ${repair.order_number||repair.id?.substring(0,6)}`, pw-35, 27, {align:'center'});
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+      doc.text(`Fecha: ${repair.date||'-'}`, pw-35, 32, {align:'center'});
 
-      doc.setFontSize(9);
-      repair.parts_used.forEach(p => {
-        doc.text(p.product_name || '-', 17, y);
-        doc.text(String(p.quantity || 0), 110, y);
-        doc.text(formatCurrency(p.unit_price), 135, y);
-        doc.text(formatCurrency((p.quantity || 0) * (p.unit_price || 0)), 165, y);
-        y += 6;
+      // Divider
+      let y = Math.max(headerBottom, 36);
+      doc.setDrawColor(...ACCENT); doc.setLineWidth(0.8); doc.line(ml,y,mr,y); y+=7;
+
+      // Client / machine info
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+      doc.text((repair.customer_name||'-').toUpperCase(), ml, y); y+=5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
+      if (repair.machine_name) { doc.text(`Equipo: ${repair.machine_name}`, ml, y); y+=5; }
+      const statusLabel = {pendiente:'Pendiente',en_proceso:'En Proceso',finalizada:'Finalizada'}[repair.status]||repair.status;
+      doc.text(`Estado: ${statusLabel}`, ml, y); y+=8;
+
+      // Problem / solution
+      if (repair.problem_description) {
+        doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...DARK);
+        doc.text('PROBLEMA:', ml, y); y+=5;
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
+        const pl = doc.splitTextToSize(repair.problem_description, mr-ml); doc.text(pl,ml,y); y+=pl.length*4.5+4;
+      }
+      if (repair.solution_description) {
+        doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...DARK);
+        doc.text('SOLUCIÓN:', ml, y); y+=5;
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
+        const sl = doc.splitTextToSize(repair.solution_description, mr-ml); doc.text(sl,ml,y); y+=sl.length*4.5+4;
+      }
+
+      // Parts table
+      if (repair.parts_used?.length) {
+        const COL = {d:ml,q:112,u:140,t:170}; const ROW_H=8;
+        doc.setFillColor(...ACCENT); doc.rect(ml,y,mr-ml,ROW_H,'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...WHITE);
+        doc.text('REPUESTO',COL.d+2,y+5.5); doc.text('CANT',COL.q,y+5.5);
+        doc.text('PRECIO UNIT.',COL.u,y+5.5); doc.text('TOTAL',COL.t,y+5.5); y+=ROW_H;
+        doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        repair.parts_used.forEach((p,i) => {
+          const rh=ROW_H;
+          if (i%2===1) { doc.setFillColor(...LGRAY); doc.rect(ml,y,mr-ml,rh,'F'); }
+          doc.setTextColor(...DARK);
+          doc.text(p.product_name||'-', COL.d+2, y+5.5);
+          doc.text(String(p.quantity||0), COL.q, y+5.5);
+          doc.text(`$ ${(p.unit_price||0).toLocaleString('es-CL')}`, COL.u, y+5.5);
+          doc.text(`$ ${((p.quantity||0)*(p.unit_price||0)).toLocaleString('es-CL')}`, COL.t, y+5.5);
+          y+=rh;
+        });
+      }
+
+      // Divider
+      doc.setDrawColor(...ACCENT); doc.setLineWidth(0.6); doc.line(ml,y,mr,y); y+=8;
+
+      // Totals
+      const totalsX=125; const tRight=mr; let ty=y;
+      const drawRow = (label, value) => {
+        doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
+        doc.text(label, totalsX+2, ty);
+        doc.text(`$ ${value.toLocaleString('es-CL')}`, tRight, ty, {align:'right'});
+        ty+=7;
+      };
+      drawRow('REPUESTOS:', repair.parts_used?.reduce((s,p)=>s+(p.quantity||0)*(p.unit_price||0),0)||0);
+      if ((repair.labor_cost||0)>0) drawRow('MANO DE OBRA:', repair.labor_cost||0);
+      doc.setFillColor(...ACCENT); doc.rect(totalsX, ty-5, mr-totalsX, 9, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(...WHITE);
+      doc.text('TOTAL:', totalsX+2, ty);
+      doc.text(`$ ${(repair.total||0).toLocaleString('es-CL')}`, tRight, ty, {align:'right'}); ty+=9;
+      if ((repair.abono||0)>0) {
+        doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
+        doc.text(`Abono: $ ${(repair.abono||0).toLocaleString('es-CL')}`, totalsX+2, ty);
+        const saldo=(repair.total||0)-(repair.abono||0);
+        doc.setFont('helvetica','bold'); doc.setTextColor(...ACCENT);
+        doc.text(`Saldo: $ ${saldo.toLocaleString('es-CL')}`, tRight, ty, {align:'right'});
+      }
+
+      // Footer
+      const fy=ph-20;
+      doc.setDrawColor(...ACCENT); doc.setLineWidth(0.4); doc.line(ml,fy-3,mr,fy-3);
+      const fCols=[ml, ml+(mr-ml)/3, ml+(mr-ml)*2/3];
+      const fData=[['UBICACIÓN',settings?.address||'-'],['TELÉFONO / EMAIL',[settings?.phone,settings?.email].filter(Boolean).join('  |  ')||'-'],['RUT / NIT',settings?.tax_id||'-']];
+      fData.forEach(([label,val],i)=>{
+        doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...DARK); doc.text(label,fCols[i],fy+2);
+        doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+        doc.text(doc.splitTextToSize(val,55),fCols[i],fy+7);
       });
-    }
+      doc.setFillColor(...ACCENT); doc.rect(0,ph-4,pw,4,'F');
 
-    y += 6;
-    doc.setFontSize(10);
-    doc.text(`Mano de obra: ${formatCurrency(repair.labor_cost)}`, pageWidth - 15, y, { align: 'right' }); y += 6;
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(12);
-    doc.text(`TOTAL: ${formatCurrency(repair.total)}`, pageWidth - 15, y, { align: 'right' });
-    if (repair.abono > 0) {
-      y += 6;
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(10);
-      doc.text(`Abono / Anticipo: ${formatCurrency(repair.abono)}`, pageWidth - 15, y, { align: 'right' });
-      y += 6;
-      doc.setFont(undefined, 'bold');
-      doc.text(`SALDO PENDIENTE: ${formatCurrency((repair.total || 0) - (repair.abono || 0))}`, pageWidth - 15, y, { align: 'right' });
+      const filename = `reparacion-${repair.order_number||repair.id?.substring(0,6)}.pdf`;
+      setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });
+    } finally {
+      setPrinting(false);
     }
-
-    const filename = `orden-${repair.order_number || repair.id?.substring(0, 6)}.pdf`;
-    setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });
   };
 
   return (
@@ -141,8 +206,9 @@ export default function RepairDetailDialog({ repair, onClose }) {
               </div>
             )}
 
-            <Button onClick={handlePrint} variant="outline" className="w-full gap-2">
-              <Printer className="h-4 w-4" /> Ver PDF
+            <Button onClick={handlePrint} variant="outline" className="w-full gap-2" disabled={printing}>
+              {printing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+              {printing ? 'Generando PDF...' : 'Ver PDF'}
             </Button>
           </div>
         </DialogContent>
