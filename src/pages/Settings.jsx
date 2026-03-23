@@ -11,7 +11,7 @@ export default function Settings() {
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({
     company_name: '', logo_url: '', address: '', phone: '',
-    email: '', website: '', tax_id: '', accent_color: '#3b82f6'
+    email: '', website: '', tax_id: '', legal_rep: '', accent_color: '#3b82f6'
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -29,6 +29,7 @@ export default function Settings() {
           email: s[0].email || '',
           website: s[0].website || '',
           tax_id: s[0].tax_id || '',
+          legal_rep: s[0].legal_rep || '',
           accent_color: s[0].accent_color || '#3b82f6',
         });
       }
@@ -109,6 +110,10 @@ export default function Settings() {
             <div>
               <Label>Sitio Web</Label>
               <Input value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} className="bg-secondary border-border" />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>Representante Legal</Label>
+              <Input value={form.legal_rep} onChange={e => setForm(f => ({ ...f, legal_rep: e.target.value }))} className="bg-secondary border-border" placeholder="Nombre completo del representante" />
             </div>
             <div className="sm:col-span-2">
               <Label>Dirección</Label>
