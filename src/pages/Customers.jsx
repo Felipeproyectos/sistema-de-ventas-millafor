@@ -42,7 +42,7 @@ export default function Customers() {
       setShowMachineForm(false);
       setMachineForm({ name: '', brand: '', model: '', type: '', serial_number: '' });
     }
-  }, [editCustomer, formOpen];
+  }, [editCustomer, formOpen]);
 
   const handleNameChange = (value) => {
     setForm(f => ({ ...f, name: value }));
@@ -200,9 +200,9 @@ export default function Customers() {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-            </div>
+                </div>
+                )}
+                </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => { setFormOpen(false); setEditCustomer(null); }}>Cancelar</Button>
             <Button onClick={handleSave}>{editCustomer ? 'Actualizar' : 'Crear'}</Button>
