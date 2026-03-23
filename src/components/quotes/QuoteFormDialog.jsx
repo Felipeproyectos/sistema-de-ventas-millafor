@@ -139,7 +139,7 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
               placeholder="Busca un cliente existente"
               className="bg-secondary border-border"
             />
-            {customerInput && !isNewCustomer && (
+            {customerInput && !isNewCustomer && !form.customer_id && (
               <div className="mt-2 bg-secondary rounded-lg border border-border max-h-40 overflow-y-auto">
                 {filteredCustomers.length > 0 ? (
                   filteredCustomers.map(c => (
