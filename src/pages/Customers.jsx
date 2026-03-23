@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Users, Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,9 @@ export default function Customers() {
   const [editCustomer, setEditCustomer] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', notes: '' });
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const nameRef = useRef(null);
 
   async function load() {
     const c = await base44.entities.Customer.list();
@@ -34,6 +37,30 @@ export default function Customers() {
       setForm({ name: '', email: '', phone: '', address: '', notes: '' });
     }
   }, [editCustomer, formOpen]);
+
+  const handleNameChange = (value) => {
+    setForm(f => ({ ...f, name: value }));
+    if (!editCustomer && value.trim().length >= 2) {
+      const matches = customers.filter(c =>
+        c.name?.toLowerCase().includes(value.toLowerCase())
+      );
+      setSuggestions(matches);
+      setShowSuggestions(matches.length > 0);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const applySuggestion = (customer) => {
+    setForm({
+      name: customer.name || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      address: customer.address || '',
+      notes: customer.notes || '',
+    });
+    setShowSuggestions(false);
+  };
 
   const handleSave = async () => {
     if (!form.name) { toast.error('El nombre es obligatorio'); return; }
@@ -105,7 +132,35 @@ export default function Customers() {
         <DialogContent className="bg-card border-border">
           <DialogHeader><DialogTitle>{editCustomer ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-4">
-            <div><Label>Nombre *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="bg-secondary border-border" /></div>
+            <div className="relative">
+              <Label>Nombre *</Label>
+              <Input
+                ref={nameRef}
+                value={form.name}
+                onChange={e => handleNameChange(e.target.value)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                className="bg-secondary border-border"
+                placeholder="Escribe el nombre del cliente..."
+              />
+              {showSuggestions && (
+                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-xl overflow-hidden">
+                  <p className="text-[10px] text-muted-foreground px-3 pt-2 pb-1 uppercase font-semibold">Clientes existentes</p>
+                  {suggestions.map(s => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => applySuggestion(s)}
+                      className="w-full text-left px-3 py-2 hover:bg-secondary transition-colors"
+                    >
+                      <p className="text-sm font-medium text-foreground">{s.name}</p>
+                      {(s.email || s.phone) && (
+                        <p className="text-xs text-muted-foreground">{[s.email, s.phone].filter(Boolean).join(' · ')}</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Email</Label><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="bg-secondary border-border" /></div>
               <div><Label>Teléfono</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="bg-secondary border-border" /></div>
