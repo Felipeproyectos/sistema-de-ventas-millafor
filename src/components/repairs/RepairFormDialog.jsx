@@ -137,8 +137,8 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
   };
 
   const handleSave = async () => {
-    if (!form.customer_id || !form.machine_id) {
-      toast.error('Selecciona cliente y equipo');
+    if (!form.customer_id) {
+      toast.error('Selecciona un cliente');
       return;
     }
     setSaving(true);
@@ -201,7 +201,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
     }
   };
 
-  const isFormComplete = form.customer_id && form.machine_id && (form.parts_used.length > 0 || form.problem_description);
+  const isFormComplete = form.customer_id && (form.parts_used.length > 0 || form.problem_description);
 
   const machineFields = (
     <div className="p-3 bg-secondary/30 rounded-lg space-y-2">
@@ -253,7 +253,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
                   </Select>
                 </div>
                 <div>
-                  <Label>Equipo *</Label>
+                  <Label>Equipo</Label>
                   <Select value={form.machine_id} onValueChange={handleMachineSelect}>
                     <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
@@ -305,7 +305,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
               <div>
                 <Label>Equipo</Label>
                 <Select value={form.machine_id} onValueChange={handleMachineSelect}>
-                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Opcional" /></SelectTrigger>
                   <SelectContent>
                     {customerMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name} {m.brand ? `- ${m.brand}` : ''}</SelectItem>)}
                   </SelectContent>
