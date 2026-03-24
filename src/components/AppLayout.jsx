@@ -3,6 +3,7 @@ import { LayoutDashboard, Wrench, Package, ShoppingCart, Users, Monitor, History
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
+import useRealtimeSync from '../hooks/useRealtimeSync';
 
 const navItems = [
 { path: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -20,6 +21,7 @@ const navItems = [
 
 
 export default function AppLayout() {
+  useRealtimeSync();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
