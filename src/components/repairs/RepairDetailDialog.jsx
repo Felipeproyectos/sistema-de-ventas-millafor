@@ -34,189 +34,198 @@ export default function RepairDetailDialog({ repair, onClose }) {
       const { jsPDF } = await import('jspdf');
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       const pw = doc.internal.pageSize.getWidth();
-      const ml = 10, mr = pw - 10;
+      const ph = doc.internal.pageSize.getHeight();
+      const ml = 12, mr = pw - 12;
       const W = mr - ml;
       const isFinalizada = repair.status === 'finalizada';
 
-      // ---- HEADER ----
-      let logoBottom = 10;
+      // Color palette
+      const hexToRgb = (hex) => [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+      const ACCENT = settings?.accent_color ? hexToRgb(settings.accent_color) : [59, 130, 246];
+      const DARK = [15, 23, 42];
+      const GRAY = [100, 116, 139];
+      const LGRAY = [248, 250, 252];
+      const WHITE = [255, 255, 255];
+      const BORDER = [226, 232, 240];
+
+      // ── TOP ACCENT BAR ──
+      doc.setFillColor(...ACCENT);
+      doc.rect(0, 0, pw, 5, 'F');
+
+      // ── LOGO + COMPANY ──
+      let logoRight = ml;
       if (settings?.logo_url) {
         try {
           const img = await new Promise((res, rej) => { const i = new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=rej; i.src=settings.logo_url; });
           const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
           c.getContext('2d').drawImage(img,0,0);
-          doc.addImage(c.toDataURL('image/png'),'PNG',ml,8,28,28);
-          logoBottom = 38;
+          doc.addImage(c.toDataURL('image/png'),'PNG', ml, 9, 30, 30);
+          logoRight = ml + 35;
         } catch {}
       }
 
-      // Company info box (top right)
-      const boxX = pw - 75, boxW = 65, boxY = 8;
-      doc.setDrawColor(0); doc.setLineWidth(0.5);
-      doc.rect(boxX, boxY, boxW, 28);
-      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(30,30,30);
-      const compLines = [
-        `Representante legal: ${settings?.legal_rep||'-'}`,
-        `RUT: ${settings?.tax_id||'-'}`,
-        `Dirección: ${settings?.address||'-'}`,
-        `Correo: ${settings?.email||'-'}`,
-        settings?.phone ? `Teléfono: ${settings.phone}` : null,
-      ].filter(Boolean);
-      compLines.forEach((l, i) => doc.text(l, boxX+3, boxY+6+(i*4.5)));
+      // Company name
+      doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(...DARK);
+      doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), logoRight, 18);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+      const compInfo = [settings?.address, settings?.phone, settings?.email].filter(Boolean);
+      compInfo.forEach((line, i) => doc.text(line, logoRight, 24 + i * 4.5));
 
-      // Title
-      const titleY = Math.max(logoBottom, 40) + 4;
-      doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(30,30,30);
-      doc.text('Orden de Servicio', pw/2, titleY, { align: 'center' });
+      // ── ORDER BADGE (top right) ──
+      const badgeX = mr - 58;
+      doc.setFillColor(...LGRAY);
+      doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+      doc.roundedRect(badgeX, 8, 58, 32, 2, 2, 'FD');
+      doc.setFillColor(...ACCENT); doc.roundedRect(badgeX, 8, 58, 9, 2, 2, 'F'); doc.rect(badgeX, 13, 58, 4, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...WHITE);
+      doc.text('ORDEN DE SERVICIO', badgeX + 29, 14, { align:'center' });
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...ACCENT);
+      doc.text(repair.order_number || repair.id?.substring(0,8) || '-', badgeX + 29, 25, { align:'center' });
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+      doc.text(`Fecha: ${repair.date || '-'}`, badgeX + 29, 31, { align:'center' });
+      const statusLabel = repair.status === 'pendiente' ? 'PENDIENTE' : repair.status === 'en_proceso' ? 'EN PROCESO' : 'FINALIZADA';
+      doc.text(`Estado: ${statusLabel}`, badgeX + 29, 36, { align:'center' });
 
-      let y = titleY + 8;
+      let y = 47;
 
-      // ---- TWO COLUMN BOXES: Client | Order data ----
-      const halfW = W/2 - 2;
-      const leftX = ml, rightX = ml + halfW + 4;
-      const boxH = 36;
+      // ── DIVIDER ──
+      doc.setDrawColor(...ACCENT); doc.setLineWidth(0.6);
+      doc.line(ml, y, mr, y); y += 6;
 
-      // Client box
-      doc.setFillColor(240,240,240); doc.rect(leftX, y, halfW, 8, 'F');
-      doc.setDrawColor(180); doc.setLineWidth(0.3); doc.rect(leftX, y, halfW, boxH);
-      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(30,30,30);
-      doc.text('DATOS DEL CLIENTE', leftX + halfW/2, y+5.5, { align: 'center' });
+      // ── SECTION HELPER ──
+      const drawSectionHeader = (title, yPos) => {
+        doc.setFillColor(...ACCENT);
+        doc.roundedRect(ml, yPos, W, 7, 1, 1, 'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...WHITE);
+        doc.text(title, ml + 4, yPos + 5);
+        return yPos + 7;
+      };
 
+      // ── CLIENT + ORDER INFO (2 columns) ──
+      const colW = W / 2 - 2;
+      const leftX = ml, rightX = ml + colW + 4;
+      const infoH = 30;
 
-      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(50,50,50);
-      const clientFields = [
-        ['NOMBRE:', repair.customer_name || '-'],
-        ['DIRECCIÓN:', '-'],
-        ['TELÉFONO:', '-'],
-        ['EMAIL:', '-'],
+      // Left box - client
+      doc.setFillColor(...LGRAY); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+      doc.roundedRect(leftX, y, colW, infoH, 1.5, 1.5, 'FD');
+      doc.setFillColor(...ACCENT); doc.roundedRect(leftX, y, colW, 7, 1.5, 1.5, 'F'); doc.rect(leftX, y+4, colW, 3, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...WHITE);
+      doc.text('DATOS DEL CLIENTE', leftX + colW/2, y + 5, { align:'center' });
+
+      const clientRows = [
+        ['NOMBRE', repair.customer_name || '-'],
+        ['TELÉFONO', '-'],
+        ['EMAIL', '-'],
       ];
-      clientFields.forEach(([label, val], i) => {
-        const fy2 = y + 13 + i * 5.5;
-        doc.setFont('helvetica','bold'); doc.text(label, leftX+3, fy2);
-        doc.setFont('helvetica','normal'); doc.setDrawColor(150); doc.setLineWidth(0.2);
-        doc.line(leftX+22, fy2+0.5, leftX+halfW-3, fy2+0.5);
-        doc.text(val, leftX+23, fy2);
+      clientRows.forEach(([lbl, val], i) => {
+        const fy = y + 12 + i * 6;
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+        doc.text(lbl + ':', leftX + 4, fy);
+        doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(val, leftX + 28, fy);
+        if (i < clientRows.length - 1) { doc.setDrawColor(...BORDER); doc.setLineWidth(0.2); doc.line(leftX+4, fy+2, leftX+colW-4, fy+2); }
       });
 
-      // Order data box
-      doc.setFillColor(240,240,240); doc.rect(rightX, y, halfW, 8, 'F');
-      doc.setDrawColor(180); doc.setLineWidth(0.3); doc.rect(rightX, y, halfW, boxH);
-      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(30,30,30);
-      doc.text('DATOS DE ORDEN DE SERVICIO', rightX + halfW/2, y+5.5, { align: 'center' });
+      // Right box - order
+      doc.setFillColor(...LGRAY); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+      doc.roundedRect(rightX, y, colW, infoH, 1.5, 1.5, 'FD');
+      doc.setFillColor(...ACCENT); doc.roundedRect(rightX, y, colW, 7, 1.5, 1.5, 'F'); doc.rect(rightX, y+4, colW, 3, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...WHITE);
+      doc.text('INFORMACIÓN DE ORDEN', rightX + colW/2, y + 5, { align:'center' });
 
-      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(50,50,50);
-      const orderFields = [
-        ['No. ORDEN:', repair.order_number || repair.id?.substring(0,6) || '-'],
-        ['FECHA DE INGRESO:', repair.date || '-'],
-        ['FECHA DE ENTREGA:', '-'],
+      const orderRows = [
+        ['N° ORDEN', repair.order_number || '-'],
+        ['FECHA INGRESO', repair.date || '-'],
+        ['ATENDIDO POR', repair.attended_by || '-'],
       ];
-      orderFields.forEach(([label, val], i) => {
-        const oy = y + 13 + i * 6;
-        doc.setFont('helvetica','bold'); doc.text(label, rightX+3, oy);
-        doc.setFont('helvetica','normal');
-        doc.setDrawColor(150); doc.setLineWidth(0.2);
-        doc.line(rightX + 38, oy+0.5, rightX + halfW - 3, oy+0.5);
-        doc.text(val, rightX+39, oy);
+      orderRows.forEach(([lbl, val], i) => {
+        const fy = y + 12 + i * 6;
+        doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+        doc.text(lbl + ':', rightX + 4, fy);
+        doc.setFont('helvetica','normal'); doc.setTextColor(...DARK);
+        doc.text(val, rightX + 32, fy);
+        if (i < orderRows.length - 1) { doc.setDrawColor(...BORDER); doc.setLineWidth(0.2); doc.line(rightX+4, fy+2, rightX+colW-4, fy+2); }
       });
-      // Atendido por
-      const atenY = y + 13 + 3 * 6 + 2;
-      doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(30,30,30);
-      doc.text(`Atendido por: ${repair.attended_by || '-'}`, rightX+3, atenY);
 
-      y += boxH + 5;
+      y += infoH + 6;
 
-      // ---- MACHINE TABLE ----
-      const machineCols = ['MARCA','MODELO','N° SERIE','TIPO MÁQUINA','ABONO (OPCIONAL)'];
-      const colW = W / machineCols.length;
-      doc.setFillColor(240,240,240); doc.rect(ml, y, W, 8, 'F');
-      doc.setDrawColor(180); doc.setLineWidth(0.3);
-      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(30,30,30);
-      let cx = ml;
-      machineCols.forEach((col, i) => {
-        doc.rect(cx, y, colW, 8);
-        doc.text(col, cx + colW/2, y+5.5, { align: 'center' });
-        cx += colW;
-      });
-      y += 8;
-
-      // Machine data row
-      const machineVals = [
-        machineData?.brand || '-',
-        machineData?.model || '-',
-        machineData?.serial_number || '-',
-        machineData?.type || repair.machine_name || '-',
-        isFinalizada ? `$${(repair.abono||0).toLocaleString('es-CL')}` : ''
+      // ── MACHINE INFO ──
+      y = drawSectionHeader('DATOS DEL EQUIPO', y);
+      const mCols = ['MARCA','MODELO','N° SERIE','TIPO','NOMBRE EQUIPO'];
+      const mVals = [
+        machineData?.brand || repair.machine_brand || '-',
+        machineData?.model || repair.machine_model || '-',
+        machineData?.serial_number || repair.machine_serial || '-',
+        machineData?.type || repair.machine_type || '-',
+        repair.machine_name || '-',
       ];
-      cx = ml;
-      machineVals.forEach((val, i) => {
-        doc.rect(cx, y, colW, 10);
-        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(50,50,50);
-        doc.text(val, cx + colW/2, y+6, { align: 'center' });
-        cx += colW;
+      const mW = W / mCols.length;
+      // Header row
+      doc.setFillColor(241, 245, 249); doc.setDrawColor(...BORDER); doc.setLineWidth(0.25);
+      let mx = ml;
+      mCols.forEach((col, i) => {
+        doc.rect(mx, y, mW, 6, 'FD');
+        doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
+        doc.text(col, mx + mW/2, y + 4, { align:'center' });
+        mx += mW;
       });
-      y += 10 + 5;
+      y += 6;
+      mx = ml;
+      mVals.forEach((val, i) => {
+        doc.setFillColor(...WHITE); doc.rect(mx, y, mW, 8, 'FD');
+        doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...DARK);
+        doc.text(val, mx + mW/2, y + 5.5, { align:'center' });
+        mx += mW;
+      });
+      y += 8 + 5;
 
-      // ---- DESCRIPCIÓN DE LA FALLA ----
-      doc.setFillColor(240,240,240); doc.rect(ml, y, W, 8, 'F');
-      doc.setDrawColor(180); doc.setLineWidth(0.3); doc.rect(ml, y, W, 8);
-      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(30,30,30);
-      doc.text('DESCRIPCIÓN DE LA FALLA', pw/2, y+5.5, { align: 'center' });
-      y += 8;
-      const descH = 32;
-      doc.rect(ml, y, W, descH);
+      // ── PROBLEMA ──
+      y = drawSectionHeader('DESCRIPCIÓN DEL PROBLEMA', y);
+      const probH = 28;
+      doc.setFillColor(...WHITE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.25);
+      doc.roundedRect(ml, y, W, probH, 1, 1, 'FD');
       if (repair.problem_description) {
-        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(50,50,50);
-        const lines = doc.splitTextToSize(repair.problem_description, W-6);
-        doc.text(lines, ml+3, y+6);
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+        const lines = doc.splitTextToSize(repair.problem_description, W - 8);
+        doc.text(lines, ml + 4, y + 6);
       }
-      y += descH + 5;
+      y += probH + 5;
 
-      // ---- ONLY IF FINALIZADA: solution + parts + totals ----
+      // ── FINALIZADA: solution + parts + totals ──
       if (isFinalizada) {
-        // Solution
         if (repair.solution_description) {
-          doc.setFillColor(240,240,240); doc.rect(ml, y, W, 8, 'F');
-          doc.rect(ml, y, W, 8);
-          doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(30,30,30);
-          doc.text('DESCRIPCIÓN DE LA SOLUCIÓN', pw/2, y+5.5, { align: 'center' });
-          y += 8;
-          const solH = 24;
-          doc.rect(ml, y, W, solH);
-          doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(50,50,50);
-          const sl = doc.splitTextToSize(repair.solution_description, W-6);
-          doc.text(sl, ml+3, y+6);
+          y = drawSectionHeader('DESCRIPCIÓN DE LA SOLUCIÓN', y);
+          const solH = 22;
+          doc.setFillColor(...WHITE); doc.setDrawColor(...BORDER); doc.setLineWidth(0.25);
+          doc.roundedRect(ml, y, W, solH, 1, 1, 'FD');
+          doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+          const sl = doc.splitTextToSize(repair.solution_description, W - 8);
+          doc.text(sl, ml + 4, y + 6);
           y += solH + 5;
         }
 
-        // Parts table
         if (repair.parts_used?.length) {
-          doc.setFillColor(240,240,240); doc.rect(ml, y, W, 8, 'F');
-          doc.rect(ml, y, W, 8);
-          doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(30,30,30);
-          doc.text('REPUESTOS UTILIZADOS', pw/2, y+5.5, { align: 'center' });
-          y += 8;
-          const pCols = [W*0.5, W*0.15, W*0.2, W*0.15];
-          const pHeaders = ['DESCRIPCIÓN','CANT.','PRECIO UNIT.','TOTAL'];
+          y = drawSectionHeader('REPUESTOS UTILIZADOS', y);
+          const pCols = [W*0.45, W*0.15, W*0.2, W*0.2];
+          const pHdrs = ['DESCRIPCIÓN','CANT.','P. UNITARIO','SUBTOTAL'];
           let px = ml;
-          doc.setFontSize(7.5);
-          pHeaders.forEach((h, i) => {
-            doc.rect(px, y, pCols[i], 7);
-            doc.text(h, px+pCols[i]/2, y+4.5, { align: 'center' });
+          doc.setFillColor(241,245,249); doc.setDrawColor(...BORDER); doc.setLineWidth(0.25);
+          pHdrs.forEach((h,i) => {
+            doc.rect(px, y, pCols[i], 6, 'FD');
+            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+            doc.text(h, px+pCols[i]/2, y+4, {align:'center'});
             px += pCols[i];
           });
-          y += 7;
-          repair.parts_used.forEach((p) => {
+          y += 6;
+          repair.parts_used.forEach((p, ti) => {
             px = ml;
-            const rowVals = [
-              p.product_name||'-',
-              String(p.quantity||0),
-              `$${(p.unit_price||0).toLocaleString('es-CL')}`,
-              `$${((p.quantity||0)*(p.unit_price||0)).toLocaleString('es-CL')}`
-            ];
-            rowVals.forEach((v, i) => {
-              doc.rect(px, y, pCols[i], 7);
-              doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(50,50,50);
-              doc.text(v, px+pCols[i]/2, y+4.5, { align: 'center' });
+            if (ti%2===0) { doc.setFillColor(248,250,252); } else { doc.setFillColor(...WHITE); }
+            const rowVals = [p.product_name||'-', String(p.quantity||0), `$${(p.unit_price||0).toLocaleString('es-CL')}`, `$${((p.quantity||0)*(p.unit_price||0)).toLocaleString('es-CL')}`];
+            rowVals.forEach((v,i) => {
+              doc.rect(px, y, pCols[i], 7, 'FD');
+              doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...DARK);
+              doc.text(v, px+pCols[i]/2, y+4.5, {align:'center'});
               px += pCols[i];
             });
             y += 7;
@@ -227,25 +236,33 @@ export default function RepairDetailDialog({ repair, onClose }) {
         // Totals
         const partsTotal = repair.parts_used?.reduce((s,p)=>s+(p.quantity||0)*(p.unit_price||0),0)||0;
         const totRows = [
-          ['Repuestos:', partsTotal],
-          ['Mano de obra:', repair.labor_cost||0],
-          ['Total:', repair.total||0],
+          ['Subtotal repuestos', partsTotal],
+          ['Mano de obra', repair.labor_cost||0],
+          ['TOTAL', repair.total||0],
         ];
-        if (repair.abono > 0) {
-          totRows.push(['Abono:', repair.abono]);
-          totRows.push(['Saldo:', (repair.total||0)-(repair.abono||0)]);
-        }
+        if (repair.abono > 0) { totRows.push(['Abono pagado', repair.abono]); totRows.push(['Saldo pendiente', (repair.total||0)-(repair.abono||0)]); }
+
         const totX = mr - 70;
-        totRows.forEach(([label, val], i) => {
-          const isTotal = label === 'Total:';
-          if (isTotal) { doc.setFillColor(220,220,220); doc.rect(totX, y, 70, 7, 'F'); }
-          doc.setFont('helvetica', isTotal?'bold':'normal'); doc.setFontSize(8.5); doc.setTextColor(30,30,30);
-          doc.text(label, totX+3, y+5);
-          doc.text(`$${val.toLocaleString('es-CL')}`, mr-3, y+5, { align: 'right' });
-          doc.setDrawColor(180); doc.rect(totX, y, 70, 7);
-          y += 7;
+        totRows.forEach(([label, val]) => {
+          const isTotal = label === 'TOTAL';
+          const isSaldo = label === 'Saldo pendiente';
+          if (isTotal) { doc.setFillColor(...ACCENT); doc.roundedRect(totX, y, 70, 8, 1, 1, 'F'); }
+          else { doc.setFillColor(...LGRAY); doc.setDrawColor(...BORDER); doc.roundedRect(totX, y, 70, 7, 1, 1, 'FD'); }
+          doc.setFont('helvetica', isTotal?'bold':'normal');
+          doc.setFontSize(isTotal ? 9 : 8);
+          doc.setTextColor(isTotal ? ...WHITE : ...DARK);
+          doc.text(label, totX + 4, y + (isTotal?5.5:4.5));
+          doc.text(`$${val.toLocaleString('es-CL')}`, mr - 4, y + (isTotal?5.5:4.5), { align:'right' });
+          y += isTotal ? 10 : 9;
         });
       }
+
+      // ── FOOTER ──
+      doc.setFillColor(...ACCENT); doc.rect(0, ph-8, pw, 8, 'F');
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...WHITE);
+      doc.text(settings?.company_name || '', pw/2, ph-4, { align:'center' });
+      if (settings?.phone) doc.text(`Tel: ${settings.phone}`, ml, ph-4);
+      if (settings?.email) doc.text(settings.email, mr, ph-4, { align:'right' });
 
       const filename = `orden-servicio-${repair.order_number||repair.id?.substring(0,6)}.pdf`;
       setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });
