@@ -14,8 +14,17 @@ import { toast } from 'sonner';
 const SIG_KEY_RESPONSIBLE = 'warranty_sig_responsible';
 const SIG_KEY_CLIENT      = 'warranty_sig_client';
 
+const genOrderNumber = () => {
+  const now = new Date();
+  const yy  = String(now.getFullYear()).slice(2);
+  const mm  = String(now.getMonth() + 1).padStart(2, '0');
+  const dd  = String(now.getDate()).padStart(2, '0');
+  const seq = String(now.getHours() * 60 + now.getMinutes()).padStart(4, '0');
+  return `OPM-${yy}${mm}${dd}-${seq}`;
+};
+
 const defaultForm = () => ({
-  order_number: '',
+  order_number: genOrderNumber(),
   date: new Date().toISOString().split('T')[0],
   customer_name: '',
   customer_phone: '',
@@ -32,7 +41,7 @@ const defaultForm = () => ({
   authorized_service: 'SERVICIO AUTORIZADO STIHL',
 });
 
-// ── Signature Pad Component ────────────────────────────
+// ── Signature Pad ──────────────────────────────────────
 function SignaturePad({ label, storageKey }) {
   const canvasRef = useRef(null);
   const fileRef   = useRef(null);
@@ -145,7 +154,7 @@ function SignaturePad({ label, storageKey }) {
           </div>
         )}
       </div>
-      {hasSig && !drawMode && <p className="text-xs text-green-400 mt-2">✓ Esta firma se usará en el PDF. Puedes reemplazarla subiendo una nueva imagen o dibujando.</p>}
+      {hasSig && !drawMode && <p className="text-xs text-green-400 mt-2">✓ Esta firma se usará en el PDF.</p>}
     </div>
   );
 }
@@ -220,23 +229,31 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
   const ml = 15, mr = pw - 15;
-  const W = mr - ml;
+  const W  = mr - ml;
 
-  // ── TOP HEADER BAND ──
-  doc.setFillColor(8, 18, 40);   doc.rect(0, 0, pw, 42, 'F');
-  doc.setFillColor(18, 45, 90);  doc.rect(0, 36, pw, 6, 'F');
-  doc.setFillColor(30, 70, 140); doc.rect(0, 40, pw, 2.5, 'F');
+  // Footer height reserved at bottom
+  const FOOTER_H = 20;
+  // Badge placed just above footer
+  const BADGE_H  = 13;
+  const BADGE_Y  = ph - FOOTER_H - BADGE_H - 4;
 
-  // Company name + RUT only (no phone/email/address in header)
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(255, 255, 255);
-  doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), ml, 18);
-  if (settings?.tax_id) {
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(160, 190, 240);
-    doc.text(`RUT: ${settings.tax_id}`, ml, 26);
-  }
+  // ── HEADER BAND ──
+  doc.setFillColor(8, 18, 40);   doc.rect(0, 0, pw, 44, 'F');
+  doc.setFillColor(18, 45, 90);  doc.rect(0, 38, pw, 6, 'F');
+  doc.setFillColor(30, 70, 140); doc.rect(0, 42, pw, 2.5, 'F');
 
-  // Logo — RIGHT in header
-  const logoSize = 30;
+  // Company info — left side (name + Rep. Legal + RUT + Tel + Email)
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(255, 255, 255);
+  doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), ml, 13);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(160, 190, 240);
+  let hY = 19;
+  if (settings?.legal_rep) { doc.text(`Rep. Legal: ${settings.legal_rep}`, ml, hY); hY += 4; }
+  if (settings?.tax_id)    { doc.text(`RUT: ${settings.tax_id}`, ml, hY); hY += 4; }
+  if (settings?.phone)     { doc.text(`Tel: ${settings.phone}`, ml, hY); hY += 4; }
+  if (settings?.email)     { doc.text(`Email: ${settings.email}`, ml, hY); }
+
+  // Logo — right side
+  const logoSize = 28;
   const logoX = mr - logoSize;
   if (settings?.logo_url) {
     try {
@@ -252,17 +269,17 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
     } catch {}
   }
 
-  // ── DOCUMENT TITLE BAR ──
-  let y = 50;
-  doc.setFillColor(235, 240, 252); doc.rect(ml, y, W, 14, 'F');
-  doc.setFillColor(30, 70, 140); doc.rect(ml, y, 4, 14, 'F');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(8, 18, 40);
-  doc.text('ORDEN DE PUESTA EN MARCHA', ml + 10, y + 9.5);
+  // ── TITLE BAR ──
+  let y = 52;
+  doc.setFillColor(235, 240, 252); doc.rect(ml, y, W, 13, 'F');
+  doc.setFillColor(30, 70, 140);   doc.rect(ml, y, 4, 13, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(8, 18, 40);
+  doc.text('ORDEN DE PUESTA EN MARCHA', ml + 9, y + 9);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(30, 70, 140);
-  doc.text(`N° ${form.order_number || '—'}`, mr, y + 6, { align: 'right' });
+  doc.text(`N° ${form.order_number || '—'}`, mr, y + 5.5, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(80, 100, 140);
-  doc.text(`Fecha: ${form.date}`, mr, y + 11, { align: 'right' });
-  y += 20;
+  doc.text(`Fecha: ${form.date}`, mr, y + 10.5, { align: 'right' });
+  y += 19;
 
   // ── SECTION TITLE HELPER ──
   const drawSectionTitle = (title, yy) => {
@@ -272,7 +289,7 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
     return yy + 8;
   };
 
-  // ── CLIENT INFO TABLE ──
+  // ── CLIENT TABLE ──
   y = drawSectionTitle('Datos del Cliente y Equipo', y);
   const clientRows = [
     ['Nombre del Cliente',  form.customer_name  || ''],
@@ -285,36 +302,36 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
   ];
   const colL = 62;
   clientRows.forEach((row, i) => {
-    const ry = y + i * 8.5;
+    const ry = y + i * 8;
     doc.setFillColor(i % 2 === 0 ? 245 : 255, i % 2 === 0 ? 247 : 255, i % 2 === 0 ? 252 : 255);
     doc.setDrawColor(200, 212, 235); doc.setLineWidth(0.2);
-    doc.rect(ml, ry, colL, 8.5, 'FD');
-    doc.rect(ml + colL, ry, W - colL, 8.5, 'FD');
+    doc.rect(ml, ry, colL, 8, 'FD');
+    doc.rect(ml + colL, ry, W - colL, 8, 'FD');
     doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(60, 80, 120);
-    doc.text(row[0], ml + 3, ry + 5.8);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(8, 18, 40);
-    doc.text(row[1], ml + colL + 4, ry + 5.8);
+    doc.text(row[0], ml + 3, ry + 5.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(8, 18, 40);
+    doc.text(row[1], ml + colL + 4, ry + 5.5);
   });
-  y += clientRows.length * 8.5 + 8;
+  y += clientRows.length * 8 + 6;
 
   // ── OBSERVATIONS ──
   y = drawSectionTitle('Observaciones de Puesta en Marcha', y);
   const drawTextBox = (text, yy) => {
     if (!text) return yy;
     const lines = doc.splitTextToSize(text, W - 10);
-    const h = Math.max(14, lines.length * 5.5 + 8);
+    const h = Math.max(13, lines.length * 5 + 7);
     doc.setFillColor(250, 252, 255); doc.setDrawColor(200, 212, 235); doc.setLineWidth(0.2);
     doc.rect(ml, yy, W, h, 'FD');
     doc.setFillColor(30, 70, 140); doc.rect(ml, yy, 2.5, h, 'F');
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(15, 25, 55);
-    doc.text(lines, ml + 7, yy + 6.5);
+    doc.text(lines, ml + 7, yy + 6);
     return yy + h + 3;
   };
   y = drawTextBox(form.observations_1, y);
   if (form.observations_2) y = drawTextBox(form.observations_2, y);
-  y += 4;
+  y += 3;
 
-  // ── SECURITY RECOMMENDATIONS ──
+  // ── SECURITY ──
   y = drawSectionTitle('Recomendaciones de Seguridad', y);
   const secRows = [
     ['Recomendaciones de Seguridad (EPP):', form.security_epp || ''],
@@ -324,70 +341,62 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
     const lw = W * 0.32; const rw = W - lw;
     const valLines = doc.splitTextToSize(val, rw - 6);
     const lblLines = doc.splitTextToSize(lbl, lw - 6);
-    const h = Math.max(18, Math.max(valLines.length, lblLines.length) * 5.5 + 10);
+    const h = Math.max(17, Math.max(valLines.length, lblLines.length) * 5 + 9);
     doc.setFillColor(235, 241, 255); doc.setDrawColor(200, 212, 235); doc.setLineWidth(0.2);
     doc.rect(ml, y, lw, h, 'FD');
     doc.setFillColor(250, 252, 255); doc.rect(ml + lw, y, rw, h, 'FD');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(30, 60, 120);
-    doc.text(lblLines, ml + 4, y + 7);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(15, 25, 55);
-    doc.text(valLines, ml + lw + 4, y + 7);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(30, 60, 120);
+    doc.text(lblLines, ml + 4, y + 6.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(15, 25, 55);
+    doc.text(valLines, ml + lw + 4, y + 6.5);
     y += h;
   });
-  y += 8;
+  y += 5;
 
-  // ── SIGNATURES ──
+  // ── SIGNATURES — placed so they fit above badge ──
   const resSig = responsibleSigData || localStorage.getItem(SIG_KEY_RESPONSIBLE);
   const cliSig = clientSigData || localStorage.getItem(SIG_KEY_CLIENT);
-  const sigW = (W - 14) / 2;
+  const sigH   = 30;
+  const sigW   = (W - 14) / 2;
 
-  const drawSigBox = (sigData, label, name, x) => {
+  // If signatures would overlap badge, compress gap
+  const sigY = Math.min(y, BADGE_Y - sigH - 6);
+
+  const drawSigBox = (sigData, label, name, x, sy) => {
     doc.setFillColor(248, 250, 255); doc.setDrawColor(200, 212, 235); doc.setLineWidth(0.3);
-    doc.roundedRect(x, y, sigW, 32, 2, 2, 'FD');
+    doc.roundedRect(x, sy, sigW, sigH, 2, 2, 'FD');
     if (sigData) {
-      try { doc.addImage(sigData, 'PNG', x + 3, y + 2, sigW - 6, 20); } catch {}
+      try { doc.addImage(sigData, 'PNG', x + 3, sy + 2, sigW - 6, 18); } catch {}
     } else {
       doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(160, 175, 205);
-      doc.text('[ Firma ]', x + sigW / 2, y + 14, { align: 'center' });
+      doc.text('[ Firma ]', x + sigW / 2, sy + 13, { align: 'center' });
     }
     doc.setDrawColor(100, 130, 180); doc.setLineWidth(0.6);
-    doc.line(x + 5, y + 24, x + sigW - 5, y + 24);
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(40, 60, 110);
-    doc.text(label, x + sigW / 2, y + 28.5, { align: 'center' });
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(8, 18, 40);
-    doc.text(name || '', x + sigW / 2, y + 32, { align: 'center' });
+    doc.line(x + 5, sy + 22, x + sigW - 5, sy + 22);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7); doc.setTextColor(40, 60, 110);
+    doc.text(label, x + sigW / 2, sy + 26, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(8, 18, 40);
+    doc.text(name || '', x + sigW / 2, sy + 30, { align: 'center' });
   };
 
-  drawSigBox(resSig, 'Responsable de la Puesta en Marcha', form.responsible_name, ml);
-  drawSigBox(cliSig, 'Firma del Cliente / Representante',  form.customer_name,    ml + sigW + 14);
-  y += 40;
+  drawSigBox(resSig, 'Responsable de la Puesta en Marcha', form.responsible_name, ml, sigY);
+  drawSigBox(cliSig, 'Firma del Cliente / Representante', form.customer_name, ml + sigW + 14, sigY);
 
-  // ── AUTHORIZED SERVICE BADGE ──
-  // Add new page if not enough space for badge + footer
-  const footerH = 20;
-  const badgeH  = 14;
-  if (y + badgeH + footerH + 4 > ph) {
-    doc.addPage();
-    y = 20;
-  }
-
+  // ── AUTHORIZED SERVICE BADGE — fixed position above footer ──
   const badgeText = (form.authorized_service || 'SERVICIO AUTORIZADO').toUpperCase();
   const badgeW = 150; const badgeX = (pw - badgeW) / 2;
   doc.setFillColor(248, 246, 238); doc.setDrawColor(160, 135, 65); doc.setLineWidth(0.5);
-  doc.roundedRect(badgeX, y, badgeW, badgeH, 2, 2, 'FD');
-  // thin gold lines top/bottom
+  doc.roundedRect(badgeX, BADGE_Y, badgeW, BADGE_H, 2, 2, 'FD');
   doc.setDrawColor(160, 135, 65); doc.setLineWidth(0.25);
-  doc.line(badgeX + 8, y + 2.5,  badgeX + badgeW - 8, y + 2.5);
-  doc.line(badgeX + 8, y + 11.5, badgeX + badgeW - 8, y + 11.5);
+  doc.line(badgeX + 8, BADGE_Y + 2.2, badgeX + badgeW - 8, BADGE_Y + 2.2);
+  doc.line(badgeX + 8, BADGE_Y + 10.8, badgeX + badgeW - 8, BADGE_Y + 10.8);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(110, 85, 25);
-  doc.text(`* ${badgeText} *`, pw / 2, y + 8, { align: 'center' });
-  y += badgeH + 6;
+  doc.text(`* ${badgeText} *`, pw / 2, BADGE_Y + 7.5, { align: 'center' });
 
-  // ── FOOTER ──
-  const footerY = ph - footerH;
-  doc.setFillColor(8, 18, 40); doc.rect(0, footerY, pw, footerH, 'F');
+  // ── FOOTER — fixed at very bottom ──
+  const footerY = ph - FOOTER_H;
+  doc.setFillColor(8, 18, 40); doc.rect(0, footerY, pw, FOOTER_H, 'F');
   doc.setFillColor(30, 70, 140); doc.rect(0, footerY, pw, 1.5, 'F');
-  // Company + contacts row
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(200, 215, 245);
   doc.text((settings?.company_name || '').toUpperCase(), pw / 2, footerY + 8, { align: 'center' });
   if (settings?.phone) {
@@ -398,7 +407,6 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 165, 210);
     doc.text(settings.email, mr, footerY + 8, { align: 'right' });
   }
-  // Digital credit row
   doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(100, 135, 195);
   doc.text('Archivo creado digitalmente por SOLUCIONES TECNOLOGICAS FML  ·  Fono +56982645747', pw / 2, footerY + 15, { align: 'center' });
 
