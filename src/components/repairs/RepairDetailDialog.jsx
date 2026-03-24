@@ -162,24 +162,26 @@ export default function RepairDetailDialog({ repair, onClose }) {
         repair.machine_name || '-',
       ];
       const mW = W / mCols.length;
-      // Header row
-      doc.setFillColor(241, 245, 249); doc.setDrawColor(...BORDER); doc.setLineWidth(0.25);
+      // Header row - dark background with white text
       let mx = ml;
-      mCols.forEach((col, i) => {
-        doc.rect(mx, y, mW, 6, 'FD');
-        doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...GRAY);
-        doc.text(col, mx + mW/2, y + 4, { align:'center' });
+      doc.setDrawColor(...BORDER); doc.setLineWidth(0.25);
+      mCols.forEach((col) => {
+        doc.setFillColor(70, 80, 95);
+        doc.rect(mx, y, mW, 7, 'FD');
+        doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...WHITE);
+        doc.text(col, mx + mW/2, y + 4.5, { align:'center' });
         mx += mW;
       });
-      y += 6;
+      y += 7;
       mx = ml;
-      mVals.forEach((val, i) => {
-        doc.setFillColor(...WHITE); doc.rect(mx, y, mW, 8, 'FD');
+      mVals.forEach((val) => {
+        doc.setFillColor(...WHITE); doc.rect(mx, y, mW, 9, 'FD');
         doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...DARK);
-        doc.text(val, mx + mW/2, y + 5.5, { align:'center' });
+        const truncated = doc.splitTextToSize(val, mW - 3)[0];
+        doc.text(truncated, mx + mW/2, y + 6, { align:'center' });
         mx += mW;
       });
-      y += 8 + 5;
+      y += 9 + 5;
 
       // ── PROBLEMA ──
       y = drawSectionHeader('DESCRIPCIÓN DEL PROBLEMA', y);
