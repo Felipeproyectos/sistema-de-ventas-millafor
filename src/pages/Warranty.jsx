@@ -42,6 +42,7 @@ const defaultForm = () => ({
   security_epp: 'Equipo de Protección Personal (EPP): Siempre utilizar casco, guantes, gafas de seguridad y protección auditiva al operar motosierra o desbrozadora.',
   maintenance: 'Realizar el mantenimiento periódico según las recomendaciones del fabricante (reemplazo de filtros, lubricación, afilado de cadena, etc.).',
   responsible_name: '',
+  authorized_service: 'SERVICIO AUTORIZADO STIHL',
 });
 
 // ── Signature Pad Component ────────────────────────────
@@ -399,14 +400,14 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
   drawSigBox(cliSig, 'Firma del Cliente / Representante',  form.customer_name,    ml + sigW + 14);
   y += 38;
 
-  // ── STIHL AUTHORIZED BADGE ───────────────────────────
+  // ── AUTHORIZED SERVICE BADGE ───────────────────────────
+  const badgeText = form.authorized_service || 'SERVICIO AUTORIZADO';
   const badgeW = 120; const badgeX = (pw - badgeW) / 2;
   doc.setFillColor(8, 18, 40); doc.roundedRect(badgeX, y, badgeW, 14, 3, 3, 'F');
-  // Gold accent lines
   doc.setFillColor(160, 130, 50); doc.rect(badgeX + 3, y + 1.5, badgeW - 6, 1.2, 'F');
   doc.rect(badgeX + 3, y + 11.3, badgeW - 6, 1.2, 'F');
   doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(200, 175, 100);
-  doc.text('★  SERVICIO AUTORIZADO STIHL  ★', pw / 2, y + 9.5, { align: 'center' });
+  doc.text(`★  ${badgeText.toUpperCase()}  ★`, pw / 2, y + 9.5, { align: 'center' });
   y += 18;
 
   // ── FOOTER ───────────────────────────────────────────
@@ -551,10 +552,19 @@ export default function Warranty() {
               <SignaturePad label="Firma del Responsable / Técnico" storageKey={SIG_KEY_RESPONSIBLE} />
               <SignaturePad label="Firma del Cliente / Representante" storageKey={SIG_KEY_CLIENT} />
 
-              <div className="bg-navy/10 border border-blue-900/40 rounded-xl p-4 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <FileText className="h-5 w-5 text-primary" />
+              <div className="bg-card border border-border rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">Distintivo de Servicio Autorizado</h3>
+                <p className="text-xs text-muted-foreground mb-2">Este texto aparecerá en el badge al final del PDF.</p>
+                <Input
+                  value={form.authorized_service}
+                  onChange={e => set('authorized_service', e.target.value)}
+                  className="bg-secondary border-border text-sm"
+                  placeholder="Ej: SERVICIO AUTORIZADO STIHL"
+                />
+                <div className="mt-3 rounded-lg bg-[#080b1a] border border-blue-900/50 px-4 py-2 text-center">
+                  <span className="text-xs font-bold" style={{color:'#c8af64'}}>★  {form.authorized_service || 'SERVICIO AUTORIZADO'}  ★</span>
                 </div>
+              </div>
                 <div>
                   <p className="text-sm font-semibold">Servicio Autorizado STIHL</p>
                   <p className="text-xs text-muted-foreground">El distintivo aparecerá al final del PDF generado.</p>
