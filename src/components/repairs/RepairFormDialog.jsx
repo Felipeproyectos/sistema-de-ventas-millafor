@@ -162,8 +162,9 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
       // Create new machine if needed
       let machineId = form.machine_id;
       let machineName = '';
-      if (showNewMachine && newMachine.name) {
-        const createdM = await base44.entities.Machine.create({ ...newMachine, customer_id: customerId });
+      if (showNewMachine && (newMachine.brand || newMachine.model)) {
+        const autoName = [newMachine.brand, newMachine.model].filter(Boolean).join(' ') || 'Equipo';
+        const createdM = await base44.entities.Machine.create({ ...newMachine, name: autoName, customer_id: customerId });
         machineId = createdM.id;
         machineName = createdM.name;
       } else {
@@ -334,7 +335,6 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
 
             {showNewMachine && (
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
-                <div className="col-span-2"><Label className="text-xs">Nombre del equipo *</Label><Input value={newMachine.name} onChange={e => setNewMachine(m => ({ ...m, name: e.target.value }))} className="bg-background border-border" /></div>
                 <div><Label className="text-xs">Marca</Label><Input value={newMachine.brand} onChange={e => setNewMachine(m => ({ ...m, brand: e.target.value }))} className="bg-background border-border" /></div>
                 <div><Label className="text-xs">Modelo</Label><Input value={newMachine.model} onChange={e => setNewMachine(m => ({ ...m, model: e.target.value }))} className="bg-background border-border" /></div>
                 <div><Label className="text-xs">Tipo</Label><Input value={newMachine.type} onChange={e => setNewMachine(m => ({ ...m, type: e.target.value }))} className="bg-background border-border" /></div>
@@ -342,13 +342,15 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
               </div>
             )}
 
-            {/* Machine detail fields (editable) */}
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
-              <div><Label className="text-xs">Marca</Label><Input value={form.machine_brand} onChange={e => setForm(f => ({ ...f, machine_brand: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
-              <div><Label className="text-xs">Modelo</Label><Input value={form.machine_model} onChange={e => setForm(f => ({ ...f, machine_model: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
-              <div><Label className="text-xs">N° de serie</Label><Input value={form.machine_serial} onChange={e => setForm(f => ({ ...f, machine_serial: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
-              <div><Label className="text-xs">Tipo</Label><Input value={form.machine_type} onChange={e => setForm(f => ({ ...f, machine_type: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
-            </div>
+            {/* Machine detail fields - only show when no new machine form open */}
+            {!showNewMachine && (
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
+                <div><Label className="text-xs">Marca</Label><Input value={form.machine_brand} onChange={e => setForm(f => ({ ...f, machine_brand: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
+                <div><Label className="text-xs">Modelo</Label><Input value={form.machine_model} onChange={e => setForm(f => ({ ...f, machine_model: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
+                <div><Label className="text-xs">N° de serie</Label><Input value={form.machine_serial} onChange={e => setForm(f => ({ ...f, machine_serial: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
+                <div><Label className="text-xs">Tipo</Label><Input value={form.machine_type} onChange={e => setForm(f => ({ ...f, machine_type: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
+              </div>
+            )}
           </div>
         </div>
 
