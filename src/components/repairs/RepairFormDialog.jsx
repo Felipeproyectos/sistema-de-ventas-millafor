@@ -11,6 +11,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function RepairFormDialog({ open, onOpenChange, repair, customers, machines, products, onSaved }) {
+  const [currentUser, setCurrentUser] = useState(null);
   const [form, setForm] = useState({
     customer_id: '', machine_id: '', date: new Date().toISOString().split('T')[0],
     problem_description: '', solution_description: '', status: 'pendiente',
@@ -20,6 +21,10 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
   const [tab, setTab] = useState('select');
   const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', email: '', address: '' });
   const [newMachine, setNewMachine] = useState({ name: '', brand: '', model: '', type: '', serial_number: '' });
+
+  useEffect(() => {
+    base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (repair) {
@@ -41,13 +46,14 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
       setForm({
         customer_id: '', machine_id: '', date: new Date().toISOString().split('T')[0],
         problem_description: '', solution_description: '', status: 'pendiente',
-        attended_by: '', parts_used: [], labor_cost: 0, abono: 0, notes: ''
+        attended_by: currentUser?.full_name || '',
+        parts_used: [], labor_cost: 0, abono: 0, notes: ''
       });
       setNewCustomer({ name: '', phone: '', email: '', address: '' });
       setNewMachine({ name: '', brand: '', model: '', serial_number: '' });
       setTab('select');
     }
-  }, [repair, open]);
+  }, [repair, open, currentUser]);
 
   const addPart = () => {
     setForm(f => ({ ...f, parts_used: [...f.parts_used, { product_id: '', product_name: '', quantity: 1, unit_price: 0 }] }));
