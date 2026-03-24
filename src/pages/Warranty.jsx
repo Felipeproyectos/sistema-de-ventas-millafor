@@ -11,19 +11,6 @@ import { getPdfBlobUrl } from '../lib/pdfUtils';
 import { FileText, Loader2, Pen, Upload, Trash2, Search, History, PlusCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
-// ── Color palette ──────────────────────────────────────
-const C = {
-  DARK:  [8, 15, 30],
-  NAVY:  [12, 35, 70],
-  BLUE:  [25, 60, 115],
-  MID:   [45, 80, 130],
-  SLATE: [90, 115, 160],
-  LGRAY: [228, 234, 245],
-  BORDER:[175, 190, 215],
-  WHITE: [255, 255, 255],
-  GOLD:  [180, 145, 60],
-};
-
 const SIG_KEY_RESPONSIBLE = 'warranty_sig_responsible';
 const SIG_KEY_CLIENT      = 'warranty_sig_client';
 
@@ -54,7 +41,6 @@ function SignaturePad({ label, storageKey }) {
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSig, setHasSig]       = useState(false);
 
-  // Load from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
     if (saved && canvasRef.current) {
@@ -182,7 +168,6 @@ function HistoryTab({ settings }) {
   );
 
   const handleRegenerate = async (order) => {
-    const { jsPDF } = await import('jspdf');
     const doc = await buildPdf(order, settings, null, null);
     if (doc) setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename: `orden-${order.order_number}.pdf` });
   };
@@ -228,7 +213,7 @@ function HistoryTab({ settings }) {
   );
 }
 
-// ── PDF builder (shared) ───────────────────────────────
+// ── PDF builder ────────────────────────────────────────
 async function buildPdf(form, settings, responsibleSigData, clientSigData) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -237,28 +222,20 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
   const ml = 15, mr = pw - 15;
   const W = mr - ml;
 
-  // ── TOP HEADER BAND ──────────────────────────────────
-  // Dark gradient-style header
+  // ── TOP HEADER BAND ──
   doc.setFillColor(8, 18, 40);   doc.rect(0, 0, pw, 42, 'F');
   doc.setFillColor(18, 45, 90);  doc.rect(0, 36, pw, 6, 'F');
   doc.setFillColor(30, 70, 140); doc.rect(0, 40, pw, 2.5, 'F');
 
-  // Company name — LEFT in header
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(255, 255, 255);
-  doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), ml, 17);
+  // Company name + RUT only (no phone/email/address in header)
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(255, 255, 255);
+  doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), ml, 18);
+  if (settings?.tax_id) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(160, 190, 240);
+    doc.text(`RUT: ${settings.tax_id}`, ml, 26);
+  }
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(160, 190, 240);
-  let infoY = 23;
-  if (settings?.tax_id)    { doc.text(`RUT: ${settings.tax_id}`, ml, infoY); infoY += 4.5; }
-  if (settings?.phone)     { doc.text(`Tel: ${settings.phone}`, ml, infoY); infoY += 4.5; }
-  if (settings?.email)     { doc.text(settings.email, ml, infoY); infoY += 4.5; }
-  if (settings?.address)   { doc.text(settings.address, ml, infoY); }
-
-  // Logo — RIGHT in header (square, big)
+  // Logo — RIGHT in header
   const logoSize = 30;
   const logoX = mr - logoSize;
   if (settings?.logo_url) {
@@ -269,32 +246,25 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
       });
       const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
       c.getContext('2d').drawImage(img, 0, 0);
-      // White rounded bg for logo
       doc.setFillColor(255, 255, 255);
       doc.roundedRect(logoX - 3, 5, logoSize + 6, logoSize + 6, 3, 3, 'F');
       doc.addImage(c.toDataURL('image/png'), 'PNG', logoX, 8, logoSize, logoSize);
     } catch {}
   }
 
-  // ── DOCUMENT TITLE BAR ──────────────────────────────
+  // ── DOCUMENT TITLE BAR ──
   let y = 50;
-  doc.setFillColor(235, 240, 252);
-  doc.rect(ml, y, W, 14, 'F');
-  doc.setDrawColor(30, 70, 140); doc.setLineWidth(0.8);
-  doc.line(ml, y, ml, y + 14); // left accent
+  doc.setFillColor(235, 240, 252); doc.rect(ml, y, W, 14, 'F');
   doc.setFillColor(30, 70, 140); doc.rect(ml, y, 4, 14, 'F');
-
   doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(8, 18, 40);
   doc.text('ORDEN DE PUESTA EN MARCHA', ml + 10, y + 9.5);
-
-  // N° and date — right side of title bar
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(30, 70, 140);
   doc.text(`N° ${form.order_number || '—'}`, mr, y + 6, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(80, 100, 140);
   doc.text(`Fecha: ${form.date}`, mr, y + 11, { align: 'right' });
   y += 20;
 
-  // ── CLIENT INFO TABLE ────────────────────────────────
+  // ── SECTION TITLE HELPER ──
   const drawSectionTitle = (title, yy) => {
     doc.setFillColor(8, 18, 40); doc.rect(ml, yy, W, 8, 'F');
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(160, 195, 255);
@@ -302,18 +272,17 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
     return yy + 8;
   };
 
+  // ── CLIENT INFO TABLE ──
   y = drawSectionTitle('Datos del Cliente y Equipo', y);
-
   const clientRows = [
-    ['Nombre del Cliente', form.customer_name || ''],
-    ['Teléfono',           form.customer_phone || ''],
-    ['Correo Electrónico', form.customer_email || ''],
-    ['Marca del Equipo',   form.machine_brand || ''],
-    ['Modelo',             form.machine_model || ''],
-    ['N° Factura / Boleta',form.invoice_number || ''],
-    ['Empresa Vendedora',  form.seller_company || ''],
+    ['Nombre del Cliente',  form.customer_name  || ''],
+    ['Teléfono',            form.customer_phone || ''],
+    ['Correo Electrónico',  form.customer_email || ''],
+    ['Marca del Equipo',    form.machine_brand  || ''],
+    ['Modelo',              form.machine_model  || ''],
+    ['N° Factura / Boleta', form.invoice_number || ''],
+    ['Empresa Vendedora',   form.seller_company || ''],
   ];
-
   const colL = 62;
   clientRows.forEach((row, i) => {
     const ry = y + i * 8.5;
@@ -328,32 +297,28 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
   });
   y += clientRows.length * 8.5 + 8;
 
-  // ── OBSERVATIONS ────────────────────────────────────
+  // ── OBSERVATIONS ──
   y = drawSectionTitle('Observaciones de Puesta en Marcha', y);
-
   const drawTextBox = (text, yy) => {
     if (!text) return yy;
     const lines = doc.splitTextToSize(text, W - 10);
     const h = Math.max(14, lines.length * 5.5 + 8);
     doc.setFillColor(250, 252, 255); doc.setDrawColor(200, 212, 235); doc.setLineWidth(0.2);
     doc.rect(ml, yy, W, h, 'FD');
-    // left accent line
     doc.setFillColor(30, 70, 140); doc.rect(ml, yy, 2.5, h, 'F');
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(15, 25, 55);
     doc.text(lines, ml + 7, yy + 6.5);
     return yy + h + 3;
   };
-
   y = drawTextBox(form.observations_1, y);
   if (form.observations_2) y = drawTextBox(form.observations_2, y);
   y += 4;
 
-  // ── SECURITY RECOMMENDATIONS ─────────────────────────
+  // ── SECURITY RECOMMENDATIONS ──
   y = drawSectionTitle('Recomendaciones de Seguridad', y);
-
   const secRows = [
     ['Recomendaciones de Seguridad (EPP):', form.security_epp || ''],
-    ['Mantenimiento Regular:',              form.maintenance || ''],
+    ['Mantenimiento Regular:',              form.maintenance  || ''],
   ];
   secRows.forEach(([lbl, val]) => {
     const lw = W * 0.32; const rw = W - lw;
@@ -362,8 +327,7 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
     const h = Math.max(18, Math.max(valLines.length, lblLines.length) * 5.5 + 10);
     doc.setFillColor(235, 241, 255); doc.setDrawColor(200, 212, 235); doc.setLineWidth(0.2);
     doc.rect(ml, y, lw, h, 'FD');
-    doc.setFillColor(250, 252, 255);
-    doc.rect(ml + lw, y, rw, h, 'FD');
+    doc.setFillColor(250, 252, 255); doc.rect(ml + lw, y, rw, h, 'FD');
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(30, 60, 120);
     doc.text(lblLines, ml + 4, y + 7);
     doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(15, 25, 55);
@@ -372,12 +336,11 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
   });
   y += 8;
 
-  // ── SIGNATURES ───────────────────────────────────────
+  // ── SIGNATURES ──
   const resSig = responsibleSigData || localStorage.getItem(SIG_KEY_RESPONSIBLE);
   const cliSig = clientSigData || localStorage.getItem(SIG_KEY_CLIENT);
   const sigW = (W - 14) / 2;
 
-  // Signature boxes
   const drawSigBox = (sigData, label, name, x) => {
     doc.setFillColor(248, 250, 255); doc.setDrawColor(200, 212, 235); doc.setLineWidth(0.3);
     doc.roundedRect(x, y, sigW, 32, 2, 2, 'FD');
@@ -387,7 +350,6 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
       doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(160, 175, 205);
       doc.text('[ Firma ]', x + sigW / 2, y + 14, { align: 'center' });
     }
-    // line
     doc.setDrawColor(100, 130, 180); doc.setLineWidth(0.6);
     doc.line(x + 5, y + 24, x + sigW - 5, y + 24);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(40, 60, 110);
@@ -398,35 +360,47 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
 
   drawSigBox(resSig, 'Responsable de la Puesta en Marcha', form.responsible_name, ml);
   drawSigBox(cliSig, 'Firma del Cliente / Representante',  form.customer_name,    ml + sigW + 14);
-  y += 38;
+  y += 40;
 
-  // ── AUTHORIZED SERVICE BADGE ───────────────────────────
+  // ── AUTHORIZED SERVICE BADGE ──
+  // Add new page if not enough space for badge + footer
+  const footerH = 20;
+  const badgeH  = 14;
+  if (y + badgeH + footerH + 4 > ph) {
+    doc.addPage();
+    y = 20;
+  }
+
   const badgeText = (form.authorized_service || 'SERVICIO AUTORIZADO').toUpperCase();
-  const badgeW = 140; const badgeX = (pw - badgeW) / 2;
-  // Subtle container
-  doc.setDrawColor(180, 155, 80); doc.setLineWidth(0.4);
-  doc.setFillColor(250, 248, 240);
-  doc.roundedRect(badgeX, y, badgeW, 11, 2, 2, 'FD');
-  // Thin top/bottom accent lines
-  doc.setDrawColor(180, 155, 80); doc.setLineWidth(0.3);
-  doc.line(badgeX + 6, y + 2.2, badgeX + badgeW - 6, y + 2.2);
-  doc.line(badgeX + 6, y + 8.8, badgeX + badgeW - 6, y + 8.8);
-  // Text
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(120, 95, 30);
-  doc.text(`✦  ${badgeText}  ✦`, pw / 2, y + 6.5, { align: 'center' });
-  y += 15;
+  const badgeW = 150; const badgeX = (pw - badgeW) / 2;
+  doc.setFillColor(248, 246, 238); doc.setDrawColor(160, 135, 65); doc.setLineWidth(0.5);
+  doc.roundedRect(badgeX, y, badgeW, badgeH, 2, 2, 'FD');
+  // thin gold lines top/bottom
+  doc.setDrawColor(160, 135, 65); doc.setLineWidth(0.25);
+  doc.line(badgeX + 8, y + 2.5,  badgeX + badgeW - 8, y + 2.5);
+  doc.line(badgeX + 8, y + 11.5, badgeX + badgeW - 8, y + 11.5);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(110, 85, 25);
+  doc.text(`* ${badgeText} *`, pw / 2, y + 8, { align: 'center' });
+  y += badgeH + 6;
 
-  // ── FOOTER ───────────────────────────────────────────
-  doc.setFillColor(8, 18, 40); doc.rect(0, ph - 16, pw, 16, 'F');
-  doc.setFillColor(30, 70, 140); doc.rect(0, ph - 17, pw, 1.5, 'F');
-  // Company name row
+  // ── FOOTER ──
+  const footerY = ph - footerH;
+  doc.setFillColor(8, 18, 40); doc.rect(0, footerY, pw, footerH, 'F');
+  doc.setFillColor(30, 70, 140); doc.rect(0, footerY, pw, 1.5, 'F');
+  // Company + contacts row
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(200, 215, 245);
-  doc.text((settings?.company_name || '').toUpperCase(), pw / 2, ph - 10, { align: 'center' });
-  if (settings?.phone) { doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 165, 210); doc.text(`Tel: ${settings.phone}`, ml, ph - 10); }
-  if (settings?.email) { doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 165, 210); doc.text(settings.email, mr, ph - 10, { align: 'right' }); }
-  // Digital creation line
+  doc.text((settings?.company_name || '').toUpperCase(), pw / 2, footerY + 8, { align: 'center' });
+  if (settings?.phone) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 165, 210);
+    doc.text(`Tel: ${settings.phone}`, ml, footerY + 8);
+  }
+  if (settings?.email) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 165, 210);
+    doc.text(settings.email, mr, footerY + 8, { align: 'right' });
+  }
+  // Digital credit row
   doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(100, 135, 195);
-  doc.text('Archivo creado digitalmente por SOLUCIONES TECNOLÓGICAS FML  ·  Fono +56982645747', pw / 2, ph - 4.5, { align: 'center' });
+  doc.text('Archivo creado digitalmente por SOLUCIONES TECNOLOGICAS FML  ·  Fono +56982645747', pw / 2, footerY + 15, { align: 'center' });
 
   return doc;
 }
@@ -455,7 +429,6 @@ export default function Warranty() {
     setGenerating(true);
     try {
       const doc = await buildPdf(form, settings, null, null);
-      // Save to history
       await base44.entities.WarrantyOrder.create({ ...form });
       const filename = `orden-${form.order_number || 'nueva'}.pdf`;
       setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });
@@ -497,7 +470,6 @@ export default function Warranty() {
           <TabsTrigger value="history" className="gap-2"><History className="h-4 w-4" /> Historial</TabsTrigger>
         </TabsList>
 
-        {/* ── NUEVA ORDEN ── */}
         <TabsContent value="new" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left: form */}
@@ -543,22 +515,8 @@ export default function Warranty() {
               </div>
             </div>
 
-            {/* Right: company info + signatures */}
+            {/* Right: signatures + badge */}
             <div className="space-y-4">
-              {settings && (
-                <div className="bg-card border border-border rounded-xl p-5">
-                  <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">Datos de la Empresa</h3>
-                  <div className="space-y-1.5 text-sm">
-                    <p><span className="text-muted-foreground text-xs">Empresa:</span> <span className="font-semibold">{settings.company_name}</span></p>
-                    {settings.legal_rep && <p><span className="text-muted-foreground text-xs">Rep. Legal:</span> <span className="font-medium">{settings.legal_rep}</span></p>}
-                    {settings.tax_id && <p><span className="text-muted-foreground text-xs">RUT:</span> <span className="font-medium">{settings.tax_id}</span></p>}
-                    {settings.phone && <p><span className="text-muted-foreground text-xs">Tel:</span> <span className="font-medium">{settings.phone}</span></p>}
-                    {settings.email && <p><span className="text-muted-foreground text-xs">Email:</span> <span className="font-medium">{settings.email}</span></p>}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-3">Modifica estos datos en <strong>Configuración</strong>.</p>
-                </div>
-              )}
-
               <SignaturePad label="Firma del Responsable / Técnico" storageKey={SIG_KEY_RESPONSIBLE} />
               <SignaturePad label="Firma del Cliente / Representante" storageKey={SIG_KEY_CLIENT} />
 
@@ -571,12 +529,16 @@ export default function Warranty() {
                   className="bg-secondary border-border text-sm"
                   placeholder="Ej: SERVICIO AUTORIZADO STIHL"
                 />
-                <div className="mt-3 rounded-lg bg-[#080b1a] border border-blue-900/50 px-4 py-2 text-center">
-                  <span className="text-xs font-bold" style={{color:'#c8af64'}}>★  {form.authorized_service || 'SERVICIO AUTORIZADO'}  ★</span>
+                <div className="mt-3 rounded-lg border px-4 py-2 text-center" style={{background:'#f8f6ee', borderColor:'#a08740'}}>
+                  <span className="text-xs font-bold" style={{color:'#6e5519'}}>* {(form.authorized_service || 'SERVICIO AUTORIZADO').toUpperCase()} *</span>
                 </div>
               </div>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <HistoryTab settings={settings} />
         </TabsContent>
       </Tabs>
 
