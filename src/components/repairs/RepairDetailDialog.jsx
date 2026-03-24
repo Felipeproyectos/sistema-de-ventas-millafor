@@ -250,7 +250,7 @@ export default function RepairDetailDialog({ repair, onClose }) {
           else { doc.setFillColor(...LGRAY); doc.setDrawColor(...BORDER); doc.roundedRect(totX, y, 70, 7, 1, 1, 'FD'); }
           doc.setFont('helvetica', isTotal?'bold':'normal');
           doc.setFontSize(isTotal ? 9 : 8);
-          doc.setTextColor(isTotal ? ...WHITE : ...DARK);
+          doc.setTextColor(...(isTotal ? WHITE : DARK));
           doc.text(label, totX + 4, y + (isTotal?5.5:4.5));
           doc.text(`$${val.toLocaleString('es-CL')}`, mr - 4, y + (isTotal?5.5:4.5), { align:'right' });
           y += isTotal ? 10 : 9;
