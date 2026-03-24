@@ -59,17 +59,21 @@ export default function RepairDetailDialog({ repair, onClose }) {
           const img = await new Promise((res, rej) => { const i = new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=rej; i.src=settings.logo_url; });
           const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
           c.getContext('2d').drawImage(img,0,0);
-          doc.addImage(c.toDataURL('image/png'),'PNG', ml, 9, 30, 30);
-          logoRight = ml + 35;
+          doc.addImage(c.toDataURL('image/png'),'PNG', ml, 8, 34, 34);
+          logoRight = ml + 39;
         } catch {}
       }
 
       // Company name
-      doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(...DARK);
-      doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), logoRight, 18);
-      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
-      const compInfo = [settings?.address, settings?.phone, settings?.email].filter(Boolean);
-      compInfo.forEach((line, i) => doc.text(line, logoRight, 24 + i * 4.5));
+      doc.setFont('helvetica','bold'); doc.setFontSize(17); doc.setTextColor(...DARK);
+      doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), logoRight, 17);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+      let cy = 23;
+      if (settings?.address) { doc.text(settings.address, logoRight, cy); cy += 4.5; }
+      if (settings?.phone)   { doc.text(settings.phone, logoRight, cy); cy += 4.5; }
+      if (settings?.email)   { doc.text(settings.email, logoRight, cy); cy += 4.5; }
+      if (settings?.tax_id)  { doc.setFont('helvetica','bold'); doc.text(`RUT: ${settings.tax_id}`, logoRight, cy); doc.setFont('helvetica','normal'); cy += 4.5; }
+      if (settings?.legal_rep) { doc.text(`Rep. Legal: ${settings.legal_rep}`, logoRight, cy); cy += 4.5; }
 
       // ── ORDER BADGE (top right) ──
       const badgeX = mr - 58;
@@ -154,13 +158,12 @@ export default function RepairDetailDialog({ repair, onClose }) {
 
       // ── MACHINE INFO ──
       y = drawSectionHeader('DATOS DEL EQUIPO', y);
-      const mCols = ['MARCA','MODELO','N° SERIE','TIPO','NOMBRE EQUIPO'];
+      const mCols = ['MARCA','MODELO','N° SERIE','TIPO'];
       const mVals = [
         machineData?.brand || repair.machine_brand || '-',
         machineData?.model || repair.machine_model || '-',
         machineData?.serial_number || repair.machine_serial || '-',
         machineData?.type || repair.machine_type || '-',
-        repair.machine_name || '-',
       ];
       const mW = W / mCols.length;
       // Header row - dark background with white text
