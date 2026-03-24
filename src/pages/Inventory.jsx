@@ -43,7 +43,7 @@ export default function Inventory() {
   }, [editProduct, formOpen]);
 
   const handleSave = async () => {
-    if (!form.name || !form.code) { toast.error('Nombre y código son obligatorios'); return; }
+    if (!form.name) { toast.error('El nombre es obligatorio'); return; }
     if (editProduct) {
       await base44.entities.Product.update(editProduct.id, form);
       toast.success('Producto actualizado');
@@ -149,7 +149,7 @@ export default function Inventory() {
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => { setFormOpen(false); setEditProduct(null); }}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.name || !form.code}>{editProduct ? 'Actualizar' : 'Crear'}</Button>
+            <Button onClick={handleSave} disabled={!form.name}>{editProduct ? 'Actualizar' : 'Crear'}</Button>
           </div>
         </DialogContent>
       </Dialog>
