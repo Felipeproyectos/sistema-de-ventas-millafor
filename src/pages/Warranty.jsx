@@ -181,6 +181,13 @@ function HistoryTab({ settings }) {
     if (doc) setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename: `orden-${order.order_number}.pdf` });
   };
 
+  const handleDelete = async (id) => {
+    if (!confirm('¿Eliminar esta orden del historial?')) return;
+    await base44.entities.WarrantyOrder.delete(id);
+    setOrders(prev => prev.filter(o => o.id !== id));
+    toast.success('Orden eliminada');
+  };
+
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -210,9 +217,14 @@ function HistoryTab({ settings }) {
                   {o.invoice_number && <span className="text-xs text-muted-foreground">Boleta/Factura: {o.invoice_number}</span>}
                 </div>
               </div>
-              <Button size="sm" variant="outline" className="gap-1.5 flex-shrink-0" onClick={() => handleRegenerate(o)}>
-                <FileText className="h-3.5 w-3.5" /> Ver PDF
-              </Button>
+              <div className="flex gap-2 flex-shrink-0">
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => handleRegenerate(o)}>
+                  <FileText className="h-3.5 w-3.5" /> Ver PDF
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(o.id)} title="Eliminar">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
