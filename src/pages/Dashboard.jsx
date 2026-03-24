@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader';
 import DashboardCharts from '../components/dashboard/DashboardCharts';
 import RecentActivity from '../components/dashboard/RecentActivity';
 import LowStockAlert from '../components/dashboard/LowStockAlert';
+import DeliveryAlerts from '../components/dashboard/DeliveryAlerts';
 
 export default function Dashboard() {
   const { data: repairs = [], isLoading: repairsLoading } = useQuery({ queryKey: ['repairs'], queryFn: () => base44.entities.RepairOrder.list(), staleTime: 1000 * 60 * 5 });
@@ -93,6 +94,7 @@ export default function Dashboard() {
           <DashboardCharts repairs={repairs} sales={sales} />
         </div>
         <div className="space-y-4">
+          <DeliveryAlerts repairs={repairs} />
           <LowStockAlert products={lowStockProducts} />
           <RecentActivity repairs={repairs} sales={sales} />
         </div>
