@@ -565,12 +565,8 @@ export default function Warranty() {
                   <span className="text-xs font-bold" style={{color:'#c8af64'}}>★  {form.authorized_service || 'SERVICIO AUTORIZADO'}  ★</span>
                 </div>
               </div>
-                <div>
-                  <p className="text-sm font-semibold">Servicio Autorizado STIHL</p>
-                  <p className="text-xs text-muted-foreground">El distintivo aparecerá al final del PDF generado.</p>
-                </div>
-              </div>
             </div>
+          </div>
           </div>
         </TabsContent>
 
