@@ -137,14 +137,11 @@ export default function RepairDetailDialog({ repair, onClose }) {
       y += 8;
 
       // Machine data row
-      const machine = { brand: '', model: '', serial_number: '', type: '', abono: isFinalizada ? (repair.abono||0) : '' };
-      // Try to get machine from machine_name
-      const mName = repair.machine_name || '';
       const machineVals = [
-        settings ? '' : '', // brand placeholder - stored in machine entity
-        '',
-        '',
-        mName,
+        machineData?.brand || '-',
+        machineData?.model || '-',
+        machineData?.serial_number || '-',
+        machineData?.type || repair.machine_name || '-',
         isFinalizada ? `$${(repair.abono||0).toLocaleString('es-CL')}` : ''
       ];
       cx = ml;
