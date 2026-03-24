@@ -14,6 +14,7 @@ const navItems = [
 { path: '/customers', label: 'Clientes', icon: Users },
 { path: '/machines', label: 'Equipos', icon: Monitor },
 { path: '/history', label: 'Historial', icon: History },
+{ path: '/warranty', label: 'Garantía', icon: FileCheck },
 { path: '/reports', label: 'Reportes', icon: FileText },
 { path: '/templates', label: 'Plantillas', icon: FileCheck },
 { path: '/users', label: 'Usuarios', icon: UserCog },
