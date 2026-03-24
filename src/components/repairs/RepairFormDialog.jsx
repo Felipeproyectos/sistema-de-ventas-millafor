@@ -203,6 +203,30 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
 
   const isFormComplete = form.customer_id && form.machine_id && (form.parts_used.length > 0 || form.problem_description);
 
+  const MachineFields = () => (
+    <div className="p-3 bg-secondary/30 rounded-lg space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase">Datos del equipo</p>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label className="text-xs">Marca</Label>
+          <Input value={form.machine_brand} onChange={e => setForm(f => ({ ...f, machine_brand: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Marca" />
+        </div>
+        <div>
+          <Label className="text-xs">Modelo</Label>
+          <Input value={form.machine_model} onChange={e => setForm(f => ({ ...f, machine_model: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Modelo" />
+        </div>
+        <div>
+          <Label className="text-xs">N° de serie</Label>
+          <Input value={form.machine_serial} onChange={e => setForm(f => ({ ...f, machine_serial: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="N° serie" />
+        </div>
+        <div>
+          <Label className="text-xs">Tipo de máquina</Label>
+          <Input value={form.machine_type} onChange={e => setForm(f => ({ ...f, machine_type: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Tipo" />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
@@ -238,95 +262,27 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
                   </Select>
                 </div>
               </div>
-
-              {/* Machine detail fields */}
-              <div className="p-3 bg-secondary/30 rounded-lg space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Datos del equipo</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs">Marca</Label>
-                    <Input value={form.machine_brand} onChange={e => setForm(f => ({ ...f, machine_brand: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Marca" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Modelo</Label>
-                    <Input value={form.machine_model} onChange={e => setForm(f => ({ ...f, machine_model: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Modelo" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">N° de serie</Label>
-                    <Input value={form.machine_serial} onChange={e => setForm(f => ({ ...f, machine_serial: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="N° serie" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Tipo de máquina</Label>
-                    <Input value={form.machine_type} onChange={e => setForm(f => ({ ...f, machine_type: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Tipo" />
-                  </div>
-                </div>
-              </div>
+              <MachineFields />
             </TabsContent>
 
             <TabsContent value="new" className="space-y-4">
               <div className="space-y-3 p-4 bg-secondary/30 rounded-lg">
                 <h3 className="text-sm font-semibold">Crear cliente</h3>
-                <Input
-                  placeholder="Nombre *"
-                  value={newCustomer.name}
-                  onChange={e => setNewCustomer(c => ({ ...c, name: e.target.value }))}
-                  className="bg-background border-border"
-                />
-                <Input
-                  placeholder="Teléfono *"
-                  value={newCustomer.phone}
-                  onChange={e => setNewCustomer(c => ({ ...c, phone: e.target.value }))}
-                  className="bg-background border-border"
-                />
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  value={newCustomer.email}
-                  onChange={e => setNewCustomer(c => ({ ...c, email: e.target.value }))}
-                  className="bg-background border-border"
-                />
-                <Input
-                  placeholder="Dirección"
-                  value={newCustomer.address}
-                  onChange={e => setNewCustomer(c => ({ ...c, address: e.target.value }))}
-                  className="bg-background border-border"
-                />
+                <Input placeholder="Nombre *" value={newCustomer.name} onChange={e => setNewCustomer(c => ({ ...c, name: e.target.value }))} className="bg-background border-border" />
+                <Input placeholder="Teléfono *" value={newCustomer.phone} onChange={e => setNewCustomer(c => ({ ...c, phone: e.target.value }))} className="bg-background border-border" />
+                <Input type="email" placeholder="Email" value={newCustomer.email} onChange={e => setNewCustomer(c => ({ ...c, email: e.target.value }))} className="bg-background border-border" />
+                <Input placeholder="Dirección" value={newCustomer.address} onChange={e => setNewCustomer(c => ({ ...c, address: e.target.value }))} className="bg-background border-border" />
                 <Button onClick={handleCreateCustomer} className="w-full">Crear cliente</Button>
               </div>
 
               {form.customer_id && (
                 <div className="space-y-3 p-4 bg-secondary/30 rounded-lg">
                   <h3 className="text-sm font-semibold">Crear equipo para {selectedCustomer?.name}</h3>
-                  <Input
-                    placeholder="Nombre del equipo *"
-                    value={newMachine.name}
-                    onChange={e => setNewMachine(m => ({ ...m, name: e.target.value }))}
-                    className="bg-background border-border"
-                  />
-                  <Input
-                    placeholder="Marca"
-                    value={newMachine.brand}
-                    onChange={e => setNewMachine(m => ({ ...m, brand: e.target.value }))}
-                    className="bg-background border-border"
-                  />
-                  <Input
-                    placeholder="Modelo"
-                    value={newMachine.model}
-                    onChange={e => setNewMachine(m => ({ ...m, model: e.target.value }))}
-                    className="bg-background border-border"
-                  />
-                  <Input
-                    placeholder="Tipo"
-                    value={newMachine.type}
-                    onChange={e => setNewMachine(m => ({ ...m, type: e.target.value }))}
-                    className="bg-background border-border"
-                  />
-                  <Input
-                    placeholder="Número de serie"
-                    value={newMachine.serial_number}
-                    onChange={e => setNewMachine(m => ({ ...m, serial_number: e.target.value }))}
-                    className="bg-background border-border"
-                  />
+                  <Input placeholder="Nombre del equipo *" value={newMachine.name} onChange={e => setNewMachine(m => ({ ...m, name: e.target.value }))} className="bg-background border-border" />
+                  <Input placeholder="Marca" value={newMachine.brand} onChange={e => setNewMachine(m => ({ ...m, brand: e.target.value }))} className="bg-background border-border" />
+                  <Input placeholder="Modelo" value={newMachine.model} onChange={e => setNewMachine(m => ({ ...m, model: e.target.value }))} className="bg-background border-border" />
+                  <Input placeholder="Tipo" value={newMachine.type} onChange={e => setNewMachine(m => ({ ...m, type: e.target.value }))} className="bg-background border-border" />
+                  <Input placeholder="Número de serie" value={newMachine.serial_number} onChange={e => setNewMachine(m => ({ ...m, serial_number: e.target.value }))} className="bg-background border-border" />
                   <Button onClick={handleCreateMachine} className="w-full">Crear equipo</Button>
                 </div>
               )}
@@ -335,49 +291,30 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
         )}
 
         {repair && (
-          <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label>Cliente</Label>
-              <Select value={form.customer_id} onValueChange={v => setForm(f => ({ ...f, customer_id: v }))}>
-                <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>
-                  {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+          <div className="space-y-3 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Cliente</Label>
+                <Select value={form.customer_id} onValueChange={v => setForm(f => ({ ...f, customer_id: v }))}>
+                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Equipo</Label>
+                <Select value={form.machine_id} onValueChange={handleMachineSelect}>
+                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                  <SelectContent>
+                    {customerMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name} {m.brand ? `- ${m.brand}` : ''}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <Label>Equipo</Label>
-              <Select value={form.machine_id} onValueChange={handleMachineSelect}>
-                <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>
-                  {customerMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name} {m.brand ? `- ${m.brand}` : ''}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+            <MachineFields />
           </div>
-          <div className="p-3 bg-secondary/30 rounded-lg space-y-2 mt-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Datos del equipo</p>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">Marca</Label>
-                <Input value={form.machine_brand} onChange={e => setForm(f => ({ ...f, machine_brand: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Marca" />
-              </div>
-              <div>
-                <Label className="text-xs">Modelo</Label>
-                <Input value={form.machine_model} onChange={e => setForm(f => ({ ...f, machine_model: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Modelo" />
-              </div>
-              <div>
-                <Label className="text-xs">N° de serie</Label>
-                <Input value={form.machine_serial} onChange={e => setForm(f => ({ ...f, machine_serial: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="N° serie" />
-              </div>
-              <div>
-                <Label className="text-xs">Tipo de máquina</Label>
-                <Input value={form.machine_type} onChange={e => setForm(f => ({ ...f, machine_type: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Tipo" />
-              </div>
-            </div>
-          </div>
-          </>\n        )}
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div>
