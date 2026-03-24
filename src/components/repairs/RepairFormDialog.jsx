@@ -203,7 +203,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
 
   const isFormComplete = form.customer_id && form.machine_id && (form.parts_used.length > 0 || form.problem_description);
 
-  const MachineFields = () => (
+  const machineFields = (
     <div className="p-3 bg-secondary/30 rounded-lg space-y-2">
       <p className="text-xs font-semibold text-muted-foreground uppercase">Datos del equipo</p>
       <div className="grid grid-cols-2 gap-2">
@@ -262,7 +262,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
                   </Select>
                 </div>
               </div>
-              <MachineFields />
+              {machineFields}
             </TabsContent>
 
             <TabsContent value="new" className="space-y-4">
@@ -312,7 +312,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
                 </Select>
               </div>
             </div>
-            <MachineFields />
+            {machineFields}
           </div>
         )}
 
