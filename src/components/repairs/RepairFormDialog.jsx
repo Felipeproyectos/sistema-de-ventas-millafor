@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,21 +6,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Search, UserPlus } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function RepairFormDialog({ open, onOpenChange, repair, customers, machines, products, onSaved }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [form, setForm] = useState({
     customer_id: '', machine_id: '', date: new Date().toISOString().split('T')[0],
+    delivery_date: '',
     problem_description: '', solution_description: '', status: 'pendiente',
     attended_by: '', parts_used: [], labor_cost: 0, abono: 0, notes: '',
     machine_brand: '', machine_model: '', machine_serial: '', machine_type: ''
   });
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState('select');
-  const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', email: '', address: '' });
+
+  // Customer search state
+  const [customerInput, setCustomerInput] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [newCustomerData, setNewCustomerData] = useState({ phone: '', email: '', address: '' });
+  const customerRef = useRef(null);
+
+  // New machine state
+  const [showNewMachine, setShowNewMachine] = useState(false);
   const [newMachine, setNewMachine] = useState({ name: '', brand: '', model: '', type: '', serial_number: '' });
 
   useEffect(() => {
@@ -33,6 +41,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
         customer_id: repair.customer_id || '',
         machine_id: repair.machine_id || '',
         date: repair.date || new Date().toISOString().split('T')[0],
+        delivery_date: repair.delivery_date || '',
         problem_description: repair.problem_description || '',
         solution_description: repair.solution_description || '',
         status: repair.status || 'pendiente',
@@ -46,20 +55,49 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
         machine_serial: repair.machine_serial || '',
         machine_type: repair.machine_type || '',
       });
-      setTab('select');
+      const c = customers.find(x => x.id === repair.customer_id);
+      setCustomerInput(c?.name || '');
+      setIsNewCustomer(false);
     } else {
       setForm({
         customer_id: '', machine_id: '', date: new Date().toISOString().split('T')[0],
+        delivery_date: '',
         problem_description: '', solution_description: '', status: 'pendiente',
         attended_by: currentUser?.nick || currentUser?.full_name || '',
         parts_used: [], labor_cost: 0, abono: 0, notes: '',
         machine_brand: '', machine_model: '', machine_serial: '', machine_type: ''
       });
-      setNewCustomer({ name: '', phone: '', email: '', address: '' });
-      setNewMachine({ name: '', brand: '', model: '', serial_number: '' });
-      setTab('select');
+      setCustomerInput('');
+      setIsNewCustomer(false);
+      setNewCustomerData({ phone: '', email: '', address: '' });
+      setShowNewMachine(false);
+      setNewMachine({ name: '', brand: '', model: '', type: '', serial_number: '' });
     }
   }, [repair, open, currentUser]);
+
+  const filteredCustomers = customers.filter(c =>
+    customerInput.length >= 1 && c.name?.toLowerCase().includes(customerInput.toLowerCase())
+  );
+
+  const handleCustomerInputChange = (val) => {
+    setCustomerInput(val);
+    setIsNewCustomer(false);
+    setForm(f => ({ ...f, customer_id: '' }));
+    setShowSuggestions(true);
+  };
+
+  const handleSelectCustomer = (c) => {
+    setCustomerInput(c.name);
+    setForm(f => ({ ...f, customer_id: c.id }));
+    setIsNewCustomer(false);
+    setShowSuggestions(false);
+  };
+
+  const handleCreateNewCustomer = () => {
+    setIsNewCustomer(true);
+    setShowSuggestions(false);
+    setForm(f => ({ ...f, customer_id: `new_${customerInput}` }));
+  };
 
   const addPart = () => {
     setForm(f => ({ ...f, parts_used: [...f.parts_used, { product_id: '', product_name: '', quantity: 1, unit_price: 0 }] }));
@@ -84,13 +122,6 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
     setForm(f => ({ ...f, parts_used: f.parts_used.filter((_, i) => i !== idx) }));
   };
 
-  const partsTotal = form.parts_used.reduce((s, p) => s + (p.quantity || 0) * (p.unit_price || 0), 0);
-  const total = partsTotal + (Number(form.labor_cost) || 0);
-  const saldo = total - (Number(form.abono) || 0);
-
-  const customerMachines = machines.filter(m => !form.customer_id || m.customer_id === form.customer_id);
-  const selectedCustomer = customers.find(c => c.id === form.customer_id);
-
   const handleMachineSelect = (machineId) => {
     const m = machines.find(x => x.id === machineId);
     setForm(f => ({
@@ -103,57 +134,49 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
     }));
   };
 
-  const handleCreateCustomer = async () => {
-    if (!newCustomer.name || !newCustomer.phone) {
-      toast.error('Nombre y teléfono son obligatorios');
-      return;
-    }
-    try {
-      const created = await base44.entities.Customer.create(newCustomer);
-      setForm(f => ({ ...f, customer_id: created.id }));
-      setNewCustomer({ name: '', phone: '', email: '', address: '' });
-      toast.success('Cliente creado');
-    } catch (err) {
-      toast.error('Error: ' + err.message);
-    }
-  };
+  const partsTotal = form.parts_used.reduce((s, p) => s + (p.quantity || 0) * (p.unit_price || 0), 0);
+  const total = partsTotal + (Number(form.labor_cost) || 0);
+  const saldo = total - (Number(form.abono) || 0);
 
-  const handleCreateMachine = async () => {
-    if (!newMachine.name || !form.customer_id) {
-      toast.error('Nombre del equipo y cliente son obligatorios');
-      return;
-    }
-    try {
-      const created = await base44.entities.Machine.create({
-        ...newMachine,
-        customer_id: form.customer_id
-      });
-      setForm(f => ({ ...f, machine_id: created.id }));
-      setNewMachine({ name: '', brand: '', model: '', type: '', serial_number: '' });
-      toast.success('Equipo creado');
-    } catch (err) {
-      toast.error('Error: ' + err.message);
-    }
-  };
+  const customerMachines = machines.filter(m => !form.customer_id || m.customer_id === form.customer_id);
 
   const handleSave = async () => {
-    if (!form.customer_id) {
-      toast.error('Selecciona un cliente');
-      return;
-    }
+    if (!form.customer_id) { toast.error('Selecciona o crea un cliente'); return; }
     setSaving(true);
     try {
-      const customer = customers.find(c => c.id === form.customer_id);
-      const machine = machines.find(m => m.id === form.machine_id);
+      let customerId = form.customer_id;
+      let customerName = customerInput;
+
+      // Create new customer if needed
+      if (isNewCustomer) {
+        if (!newCustomerData.phone) { toast.error('El teléfono es obligatorio'); setSaving(false); return; }
+        const created = await base44.entities.Customer.create({
+          name: customerName,
+          phone: newCustomerData.phone,
+          email: newCustomerData.email,
+          address: newCustomerData.address,
+        });
+        customerId = created.id;
+      }
+
+      // Create new machine if needed
+      let machineId = form.machine_id;
+      let machineName = '';
+      if (showNewMachine && newMachine.name) {
+        const createdM = await base44.entities.Machine.create({ ...newMachine, customer_id: customerId });
+        machineId = createdM.id;
+        machineName = createdM.name;
+      } else {
+        const m = machines.find(x => x.id === machineId);
+        machineName = m?.name || '';
+      }
 
       const data = {
         ...form,
-        customer_name: customer?.name || '',
-        machine_name: machine?.name || '',
-        machine_brand: form.machine_brand || '',
-        machine_model: form.machine_model || '',
-        machine_serial: form.machine_serial || '',
-        machine_type: form.machine_type || '',
+        customer_id: customerId,
+        customer_name: customerName,
+        machine_id: machineId,
+        machine_name: machineName,
         total,
         abono: Number(form.abono) || 0,
         order_number: repair?.order_number || `OR-${Date.now().toString().slice(-6)}`,
@@ -163,9 +186,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
         for (const part of form.parts_used) {
           if (part.product_id && part.quantity > 0) {
             const prod = products.find(p => p.id === part.product_id);
-            if (prod) {
-              await base44.entities.Product.update(prod.id, { stock: Math.max(0, (prod.stock || 0) - part.quantity) });
-            }
+            if (prod) await base44.entities.Product.update(prod.id, { stock: Math.max(0, (prod.stock || 0) - part.quantity) });
           }
         }
       } else {
@@ -173,13 +194,10 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
         for (const newPart of form.parts_used) {
           if (!newPart.product_id) continue;
           const oldPart = oldParts.find(op => op.product_id === newPart.product_id);
-          const oldQty = oldPart ? oldPart.quantity : 0;
-          const diff = (newPart.quantity || 0) - oldQty;
+          const diff = (newPart.quantity || 0) - (oldPart ? oldPart.quantity : 0);
           if (diff !== 0) {
             const prod = products.find(p => p.id === newPart.product_id);
-            if (prod) {
-              await base44.entities.Product.update(prod.id, { stock: Math.max(0, (prod.stock || 0) - diff) });
-            }
+            if (prod) await base44.entities.Product.update(prod.id, { stock: Math.max(0, (prod.stock || 0) - diff) });
           }
         }
       }
@@ -203,30 +221,6 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
 
   const isFormComplete = form.customer_id && (form.parts_used.length > 0 || form.problem_description);
 
-  const machineFields = (
-    <div className="p-3 bg-secondary/30 rounded-lg space-y-2">
-      <p className="text-xs font-semibold text-muted-foreground uppercase">Datos del equipo</p>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <Label className="text-xs">Marca</Label>
-          <Input value={form.machine_brand} onChange={e => setForm(f => ({ ...f, machine_brand: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Marca" />
-        </div>
-        <div>
-          <Label className="text-xs">Modelo</Label>
-          <Input value={form.machine_model} onChange={e => setForm(f => ({ ...f, machine_model: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Modelo" />
-        </div>
-        <div>
-          <Label className="text-xs">N° de serie</Label>
-          <Input value={form.machine_serial} onChange={e => setForm(f => ({ ...f, machine_serial: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="N° serie" />
-        </div>
-        <div>
-          <Label className="text-xs">Tipo de máquina</Label>
-          <Input value={form.machine_type} onChange={e => setForm(f => ({ ...f, machine_type: e.target.value }))} className="bg-background border-border h-8 text-sm" placeholder="Tipo" />
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
@@ -234,92 +228,139 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
           <DialogTitle>{repair ? 'Editar Orden' : 'Nueva Orden de Reparación'}</DialogTitle>
         </DialogHeader>
 
-        {!repair && (
-          <Tabs value={tab} onValueChange={setTab} className="mt-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="select">Seleccionar</TabsTrigger>
-              <TabsTrigger value="new">Crear desde 0</TabsTrigger>
-            </TabsList>
+        {/* ── CLIENTE ── */}
+        <div className="mt-4 space-y-3">
+          <div className="p-4 bg-secondary/30 rounded-xl border border-border space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <Search className="h-3.5 w-3.5" /> Datos del Cliente
+            </p>
 
-            <TabsContent value="select" className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label>Cliente *</Label>
-                  <Select value={form.customer_id} onValueChange={v => setForm(f => ({ ...f, customer_id: v }))}>
-                    <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Equipo</Label>
-                  <Select value={form.machine_id} onValueChange={handleMachineSelect}>
-                    <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {customerMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name} {m.brand ? `- ${m.brand}` : ''}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {machineFields}
-            </TabsContent>
-
-            <TabsContent value="new" className="space-y-4">
-              <div className="space-y-3 p-4 bg-secondary/30 rounded-lg">
-                <h3 className="text-sm font-semibold">Crear cliente</h3>
-                <Input placeholder="Nombre *" value={newCustomer.name} onChange={e => setNewCustomer(c => ({ ...c, name: e.target.value }))} className="bg-background border-border" />
-                <Input placeholder="Teléfono *" value={newCustomer.phone} onChange={e => setNewCustomer(c => ({ ...c, phone: e.target.value }))} className="bg-background border-border" />
-                <Input type="email" placeholder="Email" value={newCustomer.email} onChange={e => setNewCustomer(c => ({ ...c, email: e.target.value }))} className="bg-background border-border" />
-                <Input placeholder="Dirección" value={newCustomer.address} onChange={e => setNewCustomer(c => ({ ...c, address: e.target.value }))} className="bg-background border-border" />
-                <Button onClick={handleCreateCustomer} className="w-full">Crear cliente</Button>
-              </div>
-
-              {form.customer_id && (
-                <div className="space-y-3 p-4 bg-secondary/30 rounded-lg">
-                  <h3 className="text-sm font-semibold">Crear equipo para {selectedCustomer?.name}</h3>
-                  <Input placeholder="Nombre del equipo *" value={newMachine.name} onChange={e => setNewMachine(m => ({ ...m, name: e.target.value }))} className="bg-background border-border" />
-                  <Input placeholder="Marca" value={newMachine.brand} onChange={e => setNewMachine(m => ({ ...m, brand: e.target.value }))} className="bg-background border-border" />
-                  <Input placeholder="Modelo" value={newMachine.model} onChange={e => setNewMachine(m => ({ ...m, model: e.target.value }))} className="bg-background border-border" />
-                  <Input placeholder="Tipo" value={newMachine.type} onChange={e => setNewMachine(m => ({ ...m, type: e.target.value }))} className="bg-background border-border" />
-                  <Input placeholder="Número de serie" value={newMachine.serial_number} onChange={e => setNewMachine(m => ({ ...m, serial_number: e.target.value }))} className="bg-background border-border" />
-                  <Button onClick={handleCreateMachine} className="w-full">Crear equipo</Button>
+            <div className="relative">
+              <Label>Cliente *</Label>
+              <Input
+                ref={customerRef}
+                value={customerInput}
+                onChange={e => handleCustomerInputChange(e.target.value)}
+                onFocus={() => customerInput.length >= 1 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                placeholder="Busca por nombre..."
+                className="bg-background border-border"
+              />
+              {showSuggestions && customerInput.length >= 1 && (
+                <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-xl overflow-hidden">
+                  {filteredCustomers.length > 0 ? (
+                    <>
+                      {filteredCustomers.slice(0, 5).map(c => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => handleSelectCustomer(c)}
+                          className="w-full text-left px-3 py-2.5 hover:bg-secondary transition-colors border-b border-border last:border-b-0"
+                        >
+                          <p className="text-sm font-medium">{c.name}</p>
+                          {(c.phone || c.email) && (
+                            <p className="text-xs text-muted-foreground">{[c.phone, c.email].filter(Boolean).join(' · ')}</p>
+                          )}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={handleCreateNewCustomer}
+                        className="w-full text-left px-3 py-2.5 hover:bg-accent/10 text-accent font-medium text-sm flex items-center gap-1.5"
+                      >
+                        <UserPlus className="h-3.5 w-3.5" /> Crear nuevo: "{customerInput}"
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleCreateNewCustomer}
+                      className="w-full text-left px-3 py-2.5 hover:bg-accent/10 text-accent font-medium text-sm flex items-center gap-1.5"
+                    >
+                      <UserPlus className="h-3.5 w-3.5" /> Crear nuevo cliente: "{customerInput}"
+                    </button>
+                  )}
                 </div>
               )}
-            </TabsContent>
-          </Tabs>
-        )}
+              {form.customer_id && !isNewCustomer && (
+                <p className="text-xs text-accent mt-1">✓ Cliente seleccionado</p>
+              )}
+              {isNewCustomer && (
+                <p className="text-xs text-accent mt-1">✓ Nuevo cliente: {customerInput}</p>
+              )}
+            </div>
 
-        {repair && (
-          <div className="space-y-3 mt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label>Cliente</Label>
-                <Select value={form.customer_id} onValueChange={v => setForm(f => ({ ...f, customer_id: v }))}>
-                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                  <SelectContent>
-                    {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+            {isNewCustomer && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border">
+                <div>
+                  <Label className="text-xs">Teléfono *</Label>
+                  <Input value={newCustomerData.phone} onChange={e => setNewCustomerData(d => ({ ...d, phone: e.target.value }))} className="bg-background border-border" placeholder="+56 9 ..." />
+                </div>
+                <div>
+                  <Label className="text-xs">Email</Label>
+                  <Input type="email" value={newCustomerData.email} onChange={e => setNewCustomerData(d => ({ ...d, email: e.target.value }))} className="bg-background border-border" placeholder="correo@..." />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="text-xs">Dirección</Label>
+                  <Input value={newCustomerData.address} onChange={e => setNewCustomerData(d => ({ ...d, address: e.target.value }))} className="bg-background border-border" placeholder="Dirección..." />
+                </div>
               </div>
+            )}
+          </div>
+
+          {/* ── EQUIPO ── */}
+          <div className="p-4 bg-secondary/30 rounded-xl border border-border space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Equipo / Máquina</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label>Equipo</Label>
+                <Label className="text-xs">Seleccionar equipo existente</Label>
                 <Select value={form.machine_id} onValueChange={handleMachineSelect}>
-                  <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Opcional" /></SelectTrigger>
+                  <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Opcional" /></SelectTrigger>
                   <SelectContent>
                     {customerMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name} {m.brand ? `- ${m.brand}` : ''}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => setShowNewMachine(!showNewMachine)}
+                  className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" /> {showNewMachine ? 'Cancelar nuevo equipo' : 'Registrar nuevo equipo'}
+                </button>
+              </div>
             </div>
-            {machineFields}
-          </div>
-        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+            {showNewMachine && (
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
+                <div className="col-span-2"><Label className="text-xs">Nombre del equipo *</Label><Input value={newMachine.name} onChange={e => setNewMachine(m => ({ ...m, name: e.target.value }))} className="bg-background border-border" /></div>
+                <div><Label className="text-xs">Marca</Label><Input value={newMachine.brand} onChange={e => setNewMachine(m => ({ ...m, brand: e.target.value }))} className="bg-background border-border" /></div>
+                <div><Label className="text-xs">Modelo</Label><Input value={newMachine.model} onChange={e => setNewMachine(m => ({ ...m, model: e.target.value }))} className="bg-background border-border" /></div>
+                <div><Label className="text-xs">Tipo</Label><Input value={newMachine.type} onChange={e => setNewMachine(m => ({ ...m, type: e.target.value }))} className="bg-background border-border" /></div>
+                <div><Label className="text-xs">N° de serie</Label><Input value={newMachine.serial_number} onChange={e => setNewMachine(m => ({ ...m, serial_number: e.target.value }))} className="bg-background border-border" /></div>
+              </div>
+            )}
+
+            {/* Machine detail fields (editable) */}
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
+              <div><Label className="text-xs">Marca</Label><Input value={form.machine_brand} onChange={e => setForm(f => ({ ...f, machine_brand: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
+              <div><Label className="text-xs">Modelo</Label><Input value={form.machine_model} onChange={e => setForm(f => ({ ...f, machine_model: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
+              <div><Label className="text-xs">N° de serie</Label><Input value={form.machine_serial} onChange={e => setForm(f => ({ ...f, machine_serial: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
+              <div><Label className="text-xs">Tipo</Label><Input value={form.machine_type} onChange={e => setForm(f => ({ ...f, machine_type: e.target.value }))} className="bg-background border-border h-8 text-sm" /></div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── ORDEN INFO ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
           <div>
-            <Label>Fecha</Label>
+            <Label>Fecha de ingreso</Label>
             <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="bg-secondary border-border" />
+          </div>
+          <div>
+            <Label>Fecha estimada de entrega</Label>
+            <Input type="date" value={form.delivery_date} onChange={e => setForm(f => ({ ...f, delivery_date: e.target.value }))} className="bg-secondary border-border" />
           </div>
           <div>
             <Label>Estado</Label>
@@ -332,20 +373,21 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <Label>Atendido por</Label>
+            <Input value={form.attended_by} onChange={e => setForm(f => ({ ...f, attended_by: e.target.value }))} className="bg-secondary border-border" placeholder="Técnico" />
+          </div>
           <div className="sm:col-span-2">
             <Label>Descripción del problema</Label>
             <Textarea value={form.problem_description} onChange={e => setForm(f => ({ ...f, problem_description: e.target.value }))} className="bg-secondary border-border" rows={3} />
           </div>
           <div className="sm:col-span-2">
             <Label>Solución</Label>
-            <Textarea value={form.solution_description} onChange={e => setForm(f => ({ ...f, solution_description: e.target.value }))} className="bg-secondary border-border" rows={3} />
-          </div>
-          <div className="sm:col-span-2">
-            <Label>Atendido por</Label>
-            <Input value={form.attended_by} onChange={e => setForm(f => ({ ...f, attended_by: e.target.value }))} className="bg-secondary border-border" placeholder="Nombre del técnico" />
+            <Textarea value={form.solution_description} onChange={e => setForm(f => ({ ...f, solution_description: e.target.value }))} className="bg-secondary border-border" rows={2} />
           </div>
         </div>
 
+        {/* ── REPUESTOS ── */}
         <div className="mt-4">
           <div className="flex items-center justify-between mb-2">
             <Label className="text-sm font-semibold">Repuestos utilizados</Label>
@@ -370,6 +412,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
           ))}
         </div>
 
+        {/* ── TOTALES ── */}
         <div className="grid grid-cols-2 gap-4 mt-4">
           <div>
             <Label>Mano de obra</Label>
