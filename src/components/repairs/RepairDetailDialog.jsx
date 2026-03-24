@@ -18,10 +18,13 @@ export default function RepairDetailDialog({ repair, onClose }) {
   }, []);
 
   useEffect(() => {
-    if (repair?.machine_id) {
+    // Prefer data stored on the repair itself; fallback to fetching from Machine entity
+    if (repair?.machine_brand || repair?.machine_model || repair?.machine_serial || repair?.machine_type) {
+      setMachineData({ brand: repair.machine_brand, model: repair.machine_model, serial_number: repair.machine_serial, type: repair.machine_type });
+    } else if (repair?.machine_id) {
       base44.entities.Machine.filter({ id: repair.machine_id }).then(ms => { if (ms.length) setMachineData(ms[0]); }).catch(() => {});
     }
-  }, [repair?.machine_id]);
+  }, [repair]);
 
   if (!repair) return null;
 
