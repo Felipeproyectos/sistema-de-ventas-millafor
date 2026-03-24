@@ -233,27 +233,32 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
-  const ml = 14, mr = pw - 14;
+  const ml = 15, mr = pw - 15;
+  const W = mr - ml;
 
-  // Top bar
-  doc.setFillColor(...C.DARK); doc.rect(0, 0, pw, 6, 'F');
-  doc.setFillColor(...C.BLUE); doc.rect(0, 6, pw, 2, 'F');
+  // ── TOP HEADER BAND ──────────────────────────────────
+  // Dark gradient-style header
+  doc.setFillColor(8, 18, 40);   doc.rect(0, 0, pw, 42, 'F');
+  doc.setFillColor(18, 45, 90);  doc.rect(0, 36, pw, 6, 'F');
+  doc.setFillColor(30, 70, 140); doc.rect(0, 40, pw, 2.5, 'F');
 
-  // ── HEADER: company info LEFT, logo RIGHT ──
-  let y = 12;
+  // Company name — LEFT in header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(255, 255, 255);
+  doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), ml, 17);
 
-  // Company info — LEFT
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...C.DARK);
-  doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), ml, y); y += 6;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...C.NAVY);
-  if (settings?.legal_rep) { doc.text(`Rep. Legal: ${settings.legal_rep}`, ml, y); y += 5; }
-  if (settings?.tax_id)    { doc.text(`RUT: ${settings.tax_id}`, ml, y); y += 5; }
-  if (settings?.phone)     { doc.text(`Tel: ${settings.phone}`, ml, y); y += 5; }
-  if (settings?.email)     { doc.text(settings.email, ml, y); y += 5; }
-  if (settings?.address)   { doc.text(settings.address, ml, y); y += 5; }
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(160, 190, 240);
+  let infoY = 23;
+  if (settings?.tax_id)    { doc.text(`RUT: ${settings.tax_id}`, ml, infoY); infoY += 4.5; }
+  if (settings?.phone)     { doc.text(`Tel: ${settings.phone}`, ml, infoY); infoY += 4.5; }
+  if (settings?.email)     { doc.text(settings.email, ml, infoY); infoY += 4.5; }
+  if (settings?.address)   { doc.text(settings.address, ml, infoY); }
 
-  // Logo — RIGHT (big, square)
-  const logoSize = 38;
+  // Logo — RIGHT in header (square, big)
+  const logoSize = 30;
   const logoX = mr - logoSize;
   if (settings?.logo_url) {
     try {
@@ -263,138 +268,154 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
       });
       const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
       c.getContext('2d').drawImage(img, 0, 0);
-      doc.addImage(c.toDataURL('image/png'), 'PNG', logoX, 10, logoSize, logoSize);
+      // White rounded bg for logo
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(logoX - 3, 5, logoSize + 6, logoSize + 6, 3, 3, 'F');
+      doc.addImage(c.toDataURL('image/png'), 'PNG', logoX, 8, logoSize, logoSize);
     } catch {}
   }
 
-  let hdrBottom = Math.max(y, 50) + 4;
+  // ── DOCUMENT TITLE BAR ──────────────────────────────
+  let y = 50;
+  doc.setFillColor(235, 240, 252);
+  doc.rect(ml, y, W, 14, 'F');
+  doc.setDrawColor(30, 70, 140); doc.setLineWidth(0.8);
+  doc.line(ml, y, ml, y + 14); // left accent
+  doc.setFillColor(30, 70, 140); doc.rect(ml, y, 4, 14, 'F');
 
-  // Divider
-  doc.setDrawColor(...C.NAVY); doc.setLineWidth(1); doc.line(ml, hdrBottom, mr, hdrBottom); hdrBottom += 7;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(8, 18, 40);
+  doc.text('ORDEN DE PUESTA EN MARCHA', ml + 10, y + 9.5);
 
-  // Title block
-  doc.setFillColor(...C.DARK); doc.rect(ml, hdrBottom - 1, mr - ml, 13, 'F');
-  doc.setDrawColor(...C.BLUE); doc.setLineWidth(0.6); doc.rect(ml, hdrBottom - 1, mr - ml, 13, 'D');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(...C.WHITE);
-  doc.text('ORDEN DE PUESTA EN MARCHA', pw / 2, hdrBottom + 8, { align: 'center' });
-  hdrBottom += 15;
+  // N° and date — right side of title bar
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(30, 70, 140);
+  doc.text(`N° ${form.order_number || '—'}`, mr, y + 6, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(80, 100, 140);
+  doc.text(`Fecha: ${form.date}`, mr, y + 11, { align: 'right' });
+  y += 20;
 
-  // N° and date row
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...C.DARK);
-  doc.text(`N° ${form.order_number || '—'}`, ml, hdrBottom + 4);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...C.NAVY);
-  doc.text(`FECHA: ${form.date}`, mr, hdrBottom + 4, { align: 'right' });
-  hdrBottom += 10;
-
-  // ── CLIENT TABLE ──
-  const tblData = [
-    ['NOMBRE DEL CLIENTE', form.customer_name || ''],
-    ['TELÉFONO', form.customer_phone || ''],
-    ['CORREO ELECTRÓNICO', form.customer_email || ''],
-    ['MARCA', form.machine_brand || ''],
-    ['MODELO', form.machine_model || ''],
-    ['N° FACTURA O BOLETA', form.invoice_number || ''],
-    ['EMPRESA VENDEDORA', form.seller_company || ''],
-  ];
-  const colW1 = 62, colW2 = mr - ml - colW1;
-  tblData.forEach((row, i) => {
-    const ry = hdrBottom + i * 9;
-    doc.setFillColor(...(i % 2 === 0 ? C.LGRAY : C.WHITE));
-    doc.setDrawColor(...C.BORDER); doc.setLineWidth(0.3);
-    doc.rect(ml, ry, colW1, 9, 'FD'); doc.rect(ml + colW1, ry, colW2, 9, 'FD');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...C.DARK);
-    doc.text(row[0], ml + 3, ry + 6.2);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...C.NAVY);
-    doc.text(row[1], ml + colW1 + 3, ry + 6.2);
-  });
-  let ty = hdrBottom + tblData.length * 9 + 7;
-
-  // ── Section helper ──
-  const secHeader = (title, yy) => {
-    doc.setFillColor(...C.NAVY); doc.rect(ml, yy, mr - ml, 9, 'F');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(...C.WHITE);
-    doc.text(title, pw / 2, yy + 6.3, { align: 'center' });
-    return yy + 9;
+  // ── CLIENT INFO TABLE ────────────────────────────────
+  const drawSectionTitle = (title, yy) => {
+    doc.setFillColor(8, 18, 40); doc.rect(ml, yy, W, 8, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(160, 195, 255);
+    doc.text(('— ' + title + ' —').toUpperCase(), pw / 2, yy + 5.5, { align: 'center' });
+    return yy + 8;
   };
-  const textBox = (text, yy, minH = 16) => {
-    if (!text) return yy + minH;
-    const lines = doc.splitTextToSize(text, mr - ml - 8);
-    const h = Math.max(minH, lines.length * 5.5 + 6);
-    doc.setFillColor(...C.WHITE); doc.setDrawColor(...C.BORDER); doc.setLineWidth(0.3);
-    doc.rect(ml, yy, mr - ml, h, 'FD');
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...C.DARK);
-    doc.text(lines, pw / 2, yy + 6, { align: 'center' });
+
+  y = drawSectionTitle('Datos del Cliente y Equipo', y);
+
+  const clientRows = [
+    ['Nombre del Cliente', form.customer_name || ''],
+    ['Teléfono',           form.customer_phone || ''],
+    ['Correo Electrónico', form.customer_email || ''],
+    ['Marca del Equipo',   form.machine_brand || ''],
+    ['Modelo',             form.machine_model || ''],
+    ['N° Factura / Boleta',form.invoice_number || ''],
+    ['Empresa Vendedora',  form.seller_company || ''],
+  ];
+
+  const colL = 62;
+  clientRows.forEach((row, i) => {
+    const ry = y + i * 8.5;
+    doc.setFillColor(i % 2 === 0 ? 245 : 255, i % 2 === 0 ? 247 : 255, i % 2 === 0 ? 252 : 255);
+    doc.setDrawColor(200, 212, 235); doc.setLineWidth(0.2);
+    doc.rect(ml, ry, colL, 8.5, 'FD');
+    doc.rect(ml + colL, ry, W - colL, 8.5, 'FD');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(60, 80, 120);
+    doc.text(row[0], ml + 3, ry + 5.8);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(8, 18, 40);
+    doc.text(row[1], ml + colL + 4, ry + 5.8);
+  });
+  y += clientRows.length * 8.5 + 8;
+
+  // ── OBSERVATIONS ────────────────────────────────────
+  y = drawSectionTitle('Observaciones de Puesta en Marcha', y);
+
+  const drawTextBox = (text, yy) => {
+    if (!text) return yy;
+    const lines = doc.splitTextToSize(text, W - 10);
+    const h = Math.max(14, lines.length * 5.5 + 8);
+    doc.setFillColor(250, 252, 255); doc.setDrawColor(200, 212, 235); doc.setLineWidth(0.2);
+    doc.rect(ml, yy, W, h, 'FD');
+    // left accent line
+    doc.setFillColor(30, 70, 140); doc.rect(ml, yy, 2.5, h, 'F');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(15, 25, 55);
+    doc.text(lines, ml + 7, yy + 6.5);
     return yy + h + 3;
   };
 
-  // Observations
-  ty = secHeader('Observaciones de Puesta en Marcha', ty);
-  ty = textBox(form.observations_1, ty);
-  if (form.observations_2) ty = textBox(form.observations_2, ty);
-  ty += 3;
+  y = drawTextBox(form.observations_1, y);
+  if (form.observations_2) y = drawTextBox(form.observations_2, y);
+  y += 4;
 
-  // Security
-  ty = secHeader('Recomendaciones de Seguridad:', ty);
+  // ── SECURITY RECOMMENDATIONS ─────────────────────────
+  y = drawSectionTitle('Recomendaciones de Seguridad', y);
+
   const secRows = [
-    ['Recomendaciones\nde Seguridad:', form.security_epp || ''],
-    ['Mantenimiento\nregular:', form.maintenance || ''],
+    ['Recomendaciones de Seguridad (EPP):', form.security_epp || ''],
+    ['Mantenimiento Regular:',              form.maintenance || ''],
   ];
   secRows.forEach(([lbl, val]) => {
-    const lw = (mr - ml) * 0.30; const rw = (mr - ml) - lw;
-    const lines = doc.splitTextToSize(val, rw - 6);
-    const lblLines = doc.splitTextToSize(lbl, lw - 4);
-    const h = Math.max(20, Math.max(lines.length, lblLines.length) * 5.5 + 8);
-    doc.setFillColor(...C.WHITE); doc.setDrawColor(...C.BORDER); doc.setLineWidth(0.3);
-    doc.rect(ml, ty, lw, h, 'FD'); doc.rect(ml + lw, ty, rw, h, 'FD');
-    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...C.DARK);
-    doc.text(lblLines, ml + 3, ty + 7);
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...C.NAVY);
-    doc.text(lines, ml + lw + 4, ty + 7);
-    ty += h;
+    const lw = W * 0.32; const rw = W - lw;
+    const valLines = doc.splitTextToSize(val, rw - 6);
+    const lblLines = doc.splitTextToSize(lbl, lw - 6);
+    const h = Math.max(18, Math.max(valLines.length, lblLines.length) * 5.5 + 10);
+    doc.setFillColor(235, 241, 255); doc.setDrawColor(200, 212, 235); doc.setLineWidth(0.2);
+    doc.rect(ml, y, lw, h, 'FD');
+    doc.setFillColor(250, 252, 255);
+    doc.rect(ml + lw, y, rw, h, 'FD');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(30, 60, 120);
+    doc.text(lblLines, ml + 4, y + 7);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(15, 25, 55);
+    doc.text(valLines, ml + lw + 4, y + 7);
+    y += h;
   });
-  ty += 8;
+  y += 8;
 
-  // ── SIGNATURES ──
-  const sigW = (mr - ml - 12) / 2;
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...C.DARK);
-  doc.text('Firmas:', ml, ty); ty += 5;
-
-  // Try load signatures from localStorage if not passed
+  // ── SIGNATURES ───────────────────────────────────────
   const resSig = responsibleSigData || localStorage.getItem(SIG_KEY_RESPONSIBLE);
   const cliSig = clientSigData || localStorage.getItem(SIG_KEY_CLIENT);
+  const sigW = (W - 14) / 2;
 
-  if (resSig) { try { doc.addImage(resSig, 'PNG', ml, ty, sigW, 18); } catch {} }
-  if (cliSig) { try { doc.addImage(cliSig, 'PNG', ml + sigW + 12, ty, sigW, 18); } catch {} }
-  ty += 20;
+  // Signature boxes
+  const drawSigBox = (sigData, label, name, x) => {
+    doc.setFillColor(248, 250, 255); doc.setDrawColor(200, 212, 235); doc.setLineWidth(0.3);
+    doc.roundedRect(x, y, sigW, 32, 2, 2, 'FD');
+    if (sigData) {
+      try { doc.addImage(sigData, 'PNG', x + 3, y + 2, sigW - 6, 20); } catch {}
+    } else {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(160, 175, 205);
+      doc.text('[ Firma ]', x + sigW / 2, y + 14, { align: 'center' });
+    }
+    // line
+    doc.setDrawColor(100, 130, 180); doc.setLineWidth(0.6);
+    doc.line(x + 5, y + 24, x + sigW - 5, y + 24);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(40, 60, 110);
+    doc.text(label, x + sigW / 2, y + 28.5, { align: 'center' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(8, 18, 40);
+    doc.text(name || '', x + sigW / 2, y + 32, { align: 'center' });
+  };
 
-  doc.setDrawColor(...C.SLATE); doc.setLineWidth(0.5);
-  doc.line(ml, ty, ml + sigW, ty);
-  doc.line(ml + sigW + 12, ty, mr, ty);
-  ty += 5;
+  drawSigBox(resSig, 'Responsable de la Puesta en Marcha', form.responsible_name, ml);
+  drawSigBox(cliSig, 'Firma del Cliente / Representante',  form.customer_name,    ml + sigW + 14);
+  y += 38;
 
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...C.DARK);
-  doc.text('Responsable de la Puesta en Marcha:', ml, ty);
-  doc.text('Firma del Cliente / Representante:', ml + sigW + 12, ty);
-  ty += 4.5;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...C.NAVY);
-  doc.text(form.responsible_name || '', ml, ty);
-  doc.text(form.customer_name || '', ml + sigW + 12, ty);
-  ty += 10;
+  // ── STIHL AUTHORIZED BADGE ───────────────────────────
+  const badgeW = 120; const badgeX = (pw - badgeW) / 2;
+  doc.setFillColor(8, 18, 40); doc.roundedRect(badgeX, y, badgeW, 14, 3, 3, 'F');
+  // Gold accent lines
+  doc.setFillColor(160, 130, 50); doc.rect(badgeX + 3, y + 1.5, badgeW - 6, 1.2, 'F');
+  doc.rect(badgeX + 3, y + 11.3, badgeW - 6, 1.2, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(200, 175, 100);
+  doc.text('★  SERVICIO AUTORIZADO STIHL  ★', pw / 2, y + 9.5, { align: 'center' });
+  y += 18;
 
-  // ── STIHL BADGE ──
-  const badgeW = 110; const badgeX = (pw - badgeW) / 2;
-  doc.setFillColor(...C.DARK); doc.roundedRect(badgeX, ty, badgeW, 13, 3, 3, 'F');
-  doc.setDrawColor(...C.BLUE); doc.setLineWidth(0.8); doc.roundedRect(badgeX, ty, badgeW, 13, 3, 3, 'D');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(160, 185, 255);
-  doc.text('★  SERVICIO AUTORIZADO STIHL  ★', pw / 2, ty + 9, { align: 'center' });
-
-  // ── FOOTER ──
-  doc.setFillColor(...C.DARK); doc.rect(0, ph - 11, pw, 11, 'F');
-  doc.setFillColor(...C.BLUE); doc.rect(0, ph - 12.5, pw, 1.5, 'F');
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(180, 200, 255);
-  doc.text(settings?.company_name || '', pw / 2, ph - 5, { align: 'center' });
-  if (settings?.phone) doc.text(`Tel: ${settings.phone}`, ml, ph - 5);
-  if (settings?.email) doc.text(settings.email, mr, ph - 5, { align: 'right' });
+  // ── FOOTER ───────────────────────────────────────────
+  doc.setFillColor(8, 18, 40); doc.rect(0, ph - 12, pw, 12, 'F');
+  doc.setFillColor(30, 70, 140); doc.rect(0, ph - 13.5, pw, 1.5, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(200, 215, 245);
+  doc.text((settings?.company_name || '').toUpperCase(), pw / 2, ph - 6, { align: 'center' });
+  if (settings?.phone) { doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 165, 210); doc.text(`Tel: ${settings.phone}`, ml, ph - 6); }
+  if (settings?.email) { doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 165, 210); doc.text(settings.email, mr, ph - 6, { align: 'right' }); }
 
   return doc;
 }
