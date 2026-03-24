@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { UserPlus, Shield, User, Mail, FileText, Loader2 } from 'lucide-react';
+import { UserPlus, Shield, User, Mail, FileText, Loader2, Pencil, Check, X } from 'lucide-react';
 import PdfPreviewModal from '../components/PdfPreviewModal';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,20 @@ export default function Users() {
   const [generatingReport, setGeneratingReport] = useState(false);
   const [pdfPreview, setPdfPreview] = useState({ open: false, url: null });
   const [selectedUserEmail, setSelectedUserEmail] = useState('');
+  const [editingNick, setEditingNick] = useState(null); // userId
+  const [nickValue, setNickValue] = useState('');
+
+  const handleSaveNick = async (userId) => {
+    try {
+      await base44.auth.updateMe({ nick: nickValue });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, nick: nickValue } : u));
+      toast.success('Nick actualizado');
+    } catch (e) {
+      toast.error('Error al guardar: ' + e.message);
+    } finally {
+      setEditingNick(null);
+    }
+  };
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -308,6 +322,32 @@ export default function Users() {
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">Tú</span>
                 )}
               </div>
+              {/* Nick row */}
+              {u.id === currentUser?.id ? (
+                editingNick === u.id ? (
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-xs text-muted-foreground">Nick:</span>
+                    <input
+                      autoFocus
+                      value={nickValue}
+                      onChange={e => setNickValue(e.target.value)}
+                      className="text-xs bg-secondary border border-border rounded px-1.5 py-0.5 w-28 text-foreground outline-none"
+                      onKeyDown={e => { if (e.key === 'Enter') handleSaveNick(u.id); if (e.key === 'Escape') setEditingNick(null); }}
+                    />
+                    <button onClick={() => handleSaveNick(u.id)} className="text-accent hover:text-accent/80"><Check className="h-3 w-3" /></button>
+                    <button onClick={() => setEditingNick(null)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 mt-1 group">
+                    <span className="text-xs text-muted-foreground">Nick: <span className="text-foreground">{u.nick || '—'}</span></span>
+                    <button onClick={() => { setEditingNick(u.id); setNickValue(u.nick || ''); }} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-opacity">
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  </div>
+                )
+              ) : (
+                u.nick ? <p className="text-xs text-muted-foreground mt-1">Nick: <span className="text-foreground">{u.nick}</span></p> : null
+              )}
               <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
                 <Mail className="h-3 w-3" /> {u.email}
               </p>
