@@ -82,7 +82,7 @@ export default function RepairDetailDialog({ repair, onClose }) {
       doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(30,30,30);
       doc.text('DATOS DEL CLIENTE', leftX + halfW/2, y+5.5, { align: 'center' });
 
-      const customer = customers ? null : null; // already have customer_name
+
       doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(50,50,50);
       const clientFields = [
         ['NOMBRE:', repair.customer_name || '-'],
