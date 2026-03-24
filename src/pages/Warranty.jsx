@@ -401,22 +401,32 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
   y += 38;
 
   // ── AUTHORIZED SERVICE BADGE ───────────────────────────
-  const badgeText = form.authorized_service || 'SERVICIO AUTORIZADO';
-  const badgeW = 120; const badgeX = (pw - badgeW) / 2;
-  doc.setFillColor(8, 18, 40); doc.roundedRect(badgeX, y, badgeW, 14, 3, 3, 'F');
-  doc.setFillColor(160, 130, 50); doc.rect(badgeX + 3, y + 1.5, badgeW - 6, 1.2, 'F');
-  doc.rect(badgeX + 3, y + 11.3, badgeW - 6, 1.2, 'F');
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(200, 175, 100);
-  doc.text(`★  ${badgeText.toUpperCase()}  ★`, pw / 2, y + 9.5, { align: 'center' });
-  y += 18;
+  const badgeText = (form.authorized_service || 'SERVICIO AUTORIZADO').toUpperCase();
+  const badgeW = 140; const badgeX = (pw - badgeW) / 2;
+  // Subtle container
+  doc.setDrawColor(180, 155, 80); doc.setLineWidth(0.4);
+  doc.setFillColor(250, 248, 240);
+  doc.roundedRect(badgeX, y, badgeW, 11, 2, 2, 'FD');
+  // Thin top/bottom accent lines
+  doc.setDrawColor(180, 155, 80); doc.setLineWidth(0.3);
+  doc.line(badgeX + 6, y + 2.2, badgeX + badgeW - 6, y + 2.2);
+  doc.line(badgeX + 6, y + 8.8, badgeX + badgeW - 6, y + 8.8);
+  // Text
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(120, 95, 30);
+  doc.text(`✦  ${badgeText}  ✦`, pw / 2, y + 6.5, { align: 'center' });
+  y += 15;
 
   // ── FOOTER ───────────────────────────────────────────
-  doc.setFillColor(8, 18, 40); doc.rect(0, ph - 12, pw, 12, 'F');
-  doc.setFillColor(30, 70, 140); doc.rect(0, ph - 13.5, pw, 1.5, 'F');
+  doc.setFillColor(8, 18, 40); doc.rect(0, ph - 16, pw, 16, 'F');
+  doc.setFillColor(30, 70, 140); doc.rect(0, ph - 17, pw, 1.5, 'F');
+  // Company name row
   doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(200, 215, 245);
-  doc.text((settings?.company_name || '').toUpperCase(), pw / 2, ph - 6, { align: 'center' });
-  if (settings?.phone) { doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 165, 210); doc.text(`Tel: ${settings.phone}`, ml, ph - 6); }
-  if (settings?.email) { doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 165, 210); doc.text(settings.email, mr, ph - 6, { align: 'right' }); }
+  doc.text((settings?.company_name || '').toUpperCase(), pw / 2, ph - 10, { align: 'center' });
+  if (settings?.phone) { doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 165, 210); doc.text(`Tel: ${settings.phone}`, ml, ph - 10); }
+  if (settings?.email) { doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 165, 210); doc.text(settings.email, mr, ph - 10, { align: 'right' }); }
+  // Digital creation line
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(100, 135, 195);
+  doc.text('Archivo creado digitalmente por SOLUCIONES TECNOLÓGICAS FML  ·  Fono +56982645747', pw / 2, ph - 4.5, { align: 'center' });
 
   return doc;
 }
