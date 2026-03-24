@@ -335,6 +335,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
         )}
 
         {repair && (
+          <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Cliente</Label>
@@ -355,7 +356,6 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
               </Select>
             </div>
           </div>
-          {/* Machine detail fields for edit mode */}
           <div className="p-3 bg-secondary/30 rounded-lg space-y-2 mt-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase">Datos del equipo</p>
             <div className="grid grid-cols-2 gap-2">
@@ -377,7 +377,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
               </div>
             </div>
           </div>
-        )}
+          </>\n        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           <div>
