@@ -149,7 +149,7 @@ export default function Inventory() {
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => { setFormOpen(false); setEditProduct(null); }}>Cancelar</Button>
-            <Button onClick={handleSave}>{editProduct ? 'Actualizar' : 'Crear'}</Button>
+            <Button onClick={handleSave} disabled={!form.name || !form.code}>{editProduct ? 'Actualizar' : 'Crear'}</Button>
           </div>
         </DialogContent>
       </Dialog>
