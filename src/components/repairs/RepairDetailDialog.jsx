@@ -9,12 +9,19 @@ import PdfPreviewModal from '../PdfPreviewModal';
 
 export default function RepairDetailDialog({ repair, onClose }) {
   const [settings, setSettings] = useState(null);
+  const [machineData, setMachineData] = useState(null);
   const [pdfPreview, setPdfPreview] = useState({ open: false, url: null, filename: '' });
   const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     base44.entities.CompanySettings.list().then(s => { if (s.length) setSettings(s[0]); });
   }, []);
+
+  useEffect(() => {
+    if (repair?.machine_id) {
+      base44.entities.Machine.filter({ id: repair.machine_id }).then(ms => { if (ms.length) setMachineData(ms[0]); }).catch(() => {});
+    }
+  }, [repair?.machine_id]);
 
   if (!repair) return null;
 
