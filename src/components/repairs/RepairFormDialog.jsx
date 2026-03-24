@@ -51,7 +51,7 @@ export default function RepairFormDialog({ open, onOpenChange, repair, customers
       setForm({
         customer_id: '', machine_id: '', date: new Date().toISOString().split('T')[0],
         problem_description: '', solution_description: '', status: 'pendiente',
-        attended_by: currentUser?.full_name || '',
+        attended_by: currentUser?.nick || currentUser?.full_name || '',
         parts_used: [], labor_cost: 0, abono: 0, notes: '',
         machine_brand: '', machine_model: '', machine_serial: '', machine_type: ''
       });
