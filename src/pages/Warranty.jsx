@@ -567,12 +567,6 @@ export default function Warranty() {
               </div>
             </div>
           </div>
-          </div>
-        </TabsContent>
-
-        {/* ── HISTORIAL ── */}
-        <TabsContent value="history" className="mt-6">
-          <HistoryTab settings={settings} />
         </TabsContent>
       </Tabs>
 
