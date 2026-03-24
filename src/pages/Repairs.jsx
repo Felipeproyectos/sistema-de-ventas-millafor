@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Wrench, Plus, Search, Eye } from 'lucide-react';
+import { Wrench, Plus, Search, Eye, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +22,13 @@ export default function Repairs() {
   const [formOpen, setFormOpen] = useState(false);
   const [editRepair, setEditRepair] = useState(null);
   const [detailRepair, setDetailRepair] = useState(null);
+
+  const handleDelete = async (repair) => {
+    if (!confirm(`¿Eliminar la orden #${repair.order_number || repair.id?.substring(0,6)}? Esta acción no se puede deshacer.`)) return;
+    await base44.entities.RepairOrder.delete(repair.id);
+    setRepairs(prev => prev.filter(r => r.id !== repair.id));
+    toast.success('Orden eliminada');
+  };
 
   async function loadData() {
     const [r, c, m, p] = await Promise.all([
@@ -111,8 +119,11 @@ export default function Repairs() {
                         <Button variant="ghost" size="sm" onClick={() => { setEditRepair(r); setFormOpen(true); }}>
                           Editar
                         </Button>
-                      </div>
-                    </td>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(r)} title="Eliminar">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        </div>
+                        </td>
                   </tr>
                 ))}
               </tbody>
