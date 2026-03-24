@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import PageHeader from '../components/PageHeader';
 import PdfPreviewModal from '../components/PdfPreviewModal';
 import { getPdfBlobUrl } from '../lib/pdfUtils';
+import { uploadDocToDrive } from '../lib/driveUpload';
 import { FileText, Loader2, Pen, Upload, Trash2, Search, History, PlusCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -452,6 +453,9 @@ export default function Warranty() {
       await base44.entities.WarrantyOrder.create({ ...form });
       const filename = `orden-${form.order_number || 'nueva'}.pdf`;
       setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });
+      uploadDocToDrive(doc, filename, 'puesta_en_marcha')
+        .then(() => toast.success('PDF guardado en Google Drive > Puesta en Marcha'))
+        .catch(() => {});
       toast.success('Orden generada y guardada en historial');
     } catch (err) {
       toast.error('Error: ' + err.message);

@@ -1,6 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Printer, Loader2 } from 'lucide-react';
+import { uploadDocToDrive } from '../../lib/driveUpload';
+import { toast } from 'sonner';
 import StatusBadge from '../StatusBadge';
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -128,6 +130,9 @@ export default function SaleDetailDialog({ sale, onClose }) {
 
       const filename=`venta-${sale.order_number||sale.id?.substring(0,6)}.pdf`;
       setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });
+      uploadDocToDrive(doc, filename, 'ventas')
+        .then(() => toast.success('PDF guardado en Google Drive > Ventas'))
+        .catch(() => {});
     } finally {
       setPrinting(false);
     }

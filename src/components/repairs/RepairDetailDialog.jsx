@@ -1,6 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, Loader2 } from 'lucide-react';
+import { Printer, Loader2, CloudUpload } from 'lucide-react';
+import { uploadDocToDrive } from '../../lib/driveUpload';
+import { toast } from 'sonner';
 import StatusBadge from '../StatusBadge';
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -273,6 +275,10 @@ export default function RepairDetailDialog({ repair, onClose }) {
 
       const filename = `orden-servicio-${repair.order_number||repair.id?.substring(0,6)}.pdf`;
       setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });
+      // Subir a Drive en segundo plano
+      uploadDocToDrive(doc, filename, 'reparaciones')
+        .then(() => toast.success('PDF guardado en Google Drive > Reparaciones'))
+        .catch(() => {});
     } finally {
       setPrinting(false);
     }

@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
 import { Printer, CheckCircle2, XCircle, ShoppingCart, Wrench } from 'lucide-react';
+import { uploadDocToDrive } from '../../lib/driveUpload';
 import { toast } from "sonner";
 import { createPdfDoc, formatCurrency, getPdfBlobUrl, addTableHeader } from '../../lib/pdfUtils';
 import PdfPreviewModal from '../PdfPreviewModal';
@@ -230,6 +231,9 @@ export default function QuoteDetailDialog({ quote, onClose, onRefresh }) {
     doc.rect(0, ph - 4, pw, 4, 'F');
 
     setPdfPreview({ open: true, url: getPdfBlobUrl(doc) });
+    uploadDocToDrive(doc, `cotizacion-${quote.quote_number || quote.id?.substring(0,6)}.pdf`, 'cotizaciones')
+      .then(() => toast.success('PDF guardado en Google Drive > Cotizaciones'))
+      .catch(() => {});
   };
 
   const handleAccept = async () => {
