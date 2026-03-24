@@ -104,7 +104,7 @@ export default function RepairDetailDialog({ repair, onClose }) {
       // ── CLIENT + ORDER INFO (2 columns) ──
       const colW = W / 2 - 2;
       const leftX = ml, rightX = ml + colW + 4;
-      const infoH = 38;
+      const infoH = 44;
 
       // Left box - client
       doc.setFillColor(...LGRAY); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
@@ -137,6 +137,7 @@ export default function RepairDetailDialog({ repair, onClose }) {
       const orderRows = [
         ['N° ORDEN', repair.order_number || '-'],
         ['FECHA INGRESO', repair.date || '-'],
+        ['FECHA ENTREGA', repair.delivery_date || '-'],
         ['ATENDIDO POR', repair.attended_by || '-'],
         ['ABONO', repair.abono > 0 ? `$${(repair.abono||0).toLocaleString('es-CL')}` : '-'],
       ];
