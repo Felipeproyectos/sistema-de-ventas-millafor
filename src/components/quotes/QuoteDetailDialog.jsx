@@ -16,12 +16,16 @@ const statusMap = {
 
 export default function QuoteDetailDialog({ quote, onClose, onRefresh }) {
   const [settings, setSettings] = useState(null);
+  const [customer, setCustomer] = useState(null);
   const [pdfPreview, setPdfPreview] = useState({ open: false, url: null });
   const [converting, setConverting] = useState(false);
 
   useEffect(() => {
     base44.entities.CompanySettings.list().then(s => { if (s.length) setSettings(s[0]); });
-  }, []);
+    if (quote?.customer_id) {
+      base44.entities.Customer.filter({ id: quote.customer_id }).then(r => { if (r.length) setCustomer(r[0]); });
+    }
+  }, [quote?.customer_id]);
 
   if (!quote) return null;
 
@@ -118,18 +122,30 @@ export default function QuoteDetailDialog({ quote, onClose, onRefresh }) {
     y += 7;
 
     // ── CLIENT INFO ───────────────────────────────────────
+    // Section label
+    doc.setFillColor(...LGRAY);
+    doc.rect(ml, y - 1, mr - ml, 6.5, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(8);
+    doc.setTextColor(...ORANGE);
+    doc.text('DATOS DEL CLIENTE', ml + 2, y + 4);
+    y += 9;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10.5);
     doc.setTextColor(...DARK);
     doc.text((quote.customer_name || '-').toUpperCase(), ml, y);
     y += 5;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(...GRAY);
-    if (quote.machine_name) { doc.text(`Equipo: ${quote.machine_name}`, ml, y); y += 5; }
-    if (quote.expiry_date)  { doc.text(`Válida hasta: ${quote.expiry_date}`, ml, y); y += 5; }
-    if (quote.attended_by)  { doc.text(`Atendido por: ${quote.attended_by}`, ml, y); y += 5; }
-    y += 4;
+    if (customer?.phone)   { doc.text(`Teléfono: ${customer.phone}`, ml, y); y += 4.5; }
+    if (customer?.email)   { doc.text(`Email: ${customer.email}`, ml, y); y += 4.5; }
+    if (customer?.address) { doc.text(`Dirección: ${customer.address}`, ml, y); y += 4.5; }
+    if (quote.machine_name){ doc.text(`Equipo: ${quote.machine_name}`, ml, y); y += 4.5; }
+    if (quote.expiry_date) { doc.text(`Válida hasta: ${quote.expiry_date}`, ml, y); y += 4.5; }
+    if (quote.attended_by) { doc.text(`Atendido por: ${quote.attended_by}`, ml, y); y += 4.5; }
+    y += 5;
 
     // ── TABLE ─────────────────────────────────────────────
     const COL = { d: ml, q: 112, u: 140, t: 170 };
@@ -215,28 +231,19 @@ export default function QuoteDetailDialog({ quote, onClose, onRefresh }) {
     doc.text(`$ ${(quote.total || 0).toLocaleString('es-CL')}`, tRight, ty, { align: 'right' });
 
     // ── FOOTER ───────────────────────────────────────────
-    const fy = ph - 20;
+    const fy = ph - 18;
     doc.setDrawColor(...ORANGE);
     doc.setLineWidth(0.4);
-    doc.line(ml, fy - 3, mr, fy - 3);
+    doc.line(ml, fy - 2, mr, fy - 2);
 
-    const fCols = [ml, ml + (mr - ml) / 3, ml + (mr - ml) * 2 / 3];
-    const fData = [
-      ['UBICACIÓN', settings?.address || '-'],
-      ['TELÉFONO / EMAIL', [settings?.phone, settings?.email].filter(Boolean).join('  |  ') || '-'],
-      ['RUT / NIT', settings?.tax_id || (settings?.company_name || '-')],
-    ];
-    fData.forEach(([label, val], i) => {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(...DARK);
-      doc.text(label, fCols[i], fy + 2);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...GRAY);
-      doc.setFontSize(7);
-      const flines = doc.splitTextToSize(val, 55);
-      doc.text(flines, fCols[i], fy + 7);
-    });
+    // Signature / elaborated by
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    doc.text('Documento digital elaborado por SolucionesFML', pw / 2, fy + 4, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...DARK);
+    doc.text('Contacto: +56 9 8264 5747', pw / 2, fy + 9, { align: 'center' });
 
     // Bottom orange bar
     doc.setFillColor(...ORANGE);
