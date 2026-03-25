@@ -35,6 +35,7 @@ export default function useBarcodeScanner({ onScan, enabled = true }) {
       if (e.key === 'Enter') {
         if (bufferRef.current.length >= 2) {
           e.preventDefault();
+          e.stopPropagation();
           flush();
         }
         return;
@@ -42,6 +43,11 @@ export default function useBarcodeScanner({ onScan, enabled = true }) {
 
       // Only accumulate printable characters
       if (e.key && e.key.length === 1) {
+        // If typing fast (scanner speed), prevent character from going into focused inputs
+        if (timeDiff < 50) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
         bufferRef.current += e.key;
 
         // Auto-flush after short delay in case Enter is missing
@@ -52,9 +58,10 @@ export default function useBarcodeScanner({ onScan, enabled = true }) {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    // Use capture:true so we intercept before focused inputs receive the keystroke
+    document.addEventListener('keydown', handleKeyDown, true);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', handleKeyDown, true);
       clearTimeout(timerRef.current);
     };
   }, [enabled, flush]);
