@@ -200,18 +200,47 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
       return `${prefix}-${num}`;
     };
 
+    const generateBarcode = (allExisting) => {
+      const today = new Date();
+      const datePart = today.getFullYear().toString() +
+        String(today.getMonth() + 1).padStart(2, '0') +
+        String(today.getDate()).padStart(2, '0');
+      const seq = String(allExisting.length + 1).padStart(4, '0');
+      return `MIL${datePart}${seq}`;
+    };
+
     for (const row of rows) {
       if (!config.validate(row)) {
         errors.push(`Fila inválida: falta el nombre del producto`);
         continue;
       }
 
-      // Auto-generate code if missing (products only)
-      if (entityType === 'products' && !row.codigo) {
-        row.codigo = generateProductCode(row.nombre, existingProducts);
+      if (entityType === 'products') {
+        // Auto-generate code if missing
+        if (!row.codigo) {
+          row.codigo = generateProductCode(row.nombre, existingProducts);
+        }
+        // Check duplicate code
+        const dupCode = existingProducts.find(p => p.code === row.codigo);
+        if (dupCode) {
+          errors.push(`⚠️ "${row.nombre}": código "${row.codigo}" ya existe en "${dupCode.name}" — no se creó`);
+          continue;
+        }
+        // Auto-generate barcode always (unique per product)
+        row._barcode = generateBarcode(existingProducts);
+        // If user provided a manual barcode, check uniqueness
+        if (row.barcode) {
+          const dupBar = existingProducts.find(p => p.barcode === row.barcode);
+          if (dupBar) {
+            errors.push(`⚠️ "${row.nombre}": código de barras "${row.barcode}" ya existe en "${dupBar.name}" — no se creó`);
+            continue;
+          }
+          row._barcode = row.barcode;
+        }
       }
 
       const mapped = config.mapRow(row, customers);
+      if (entityType === 'products') mapped.barcode = row._barcode;
       const created = await base44.entities[config.entity].create(mapped);
       if (entityType === 'products') {
         existingProducts.push(created);
@@ -258,6 +287,31 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
           if (code) JsBarcode(el, code, { displayValue: false, margin: 2 });
         });
         setTimeout(() => { window.print(); window.close(); }, 800);
+      <\/script></body></html>
+    `);
+    win.document.close();
+  };
+
+  const printSingleLabel = (p) => {
+    const win = window.open('', '_blank', 'width=400,height=300');
+    win.document.write(`
+      <!DOCTYPE html><html><head><title>Etiqueta</title>
+      <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 10px; display: flex; justify-content: center; }
+        .label { width: 58mm; border: 1px solid #ccc; border-radius: 4px; padding: 8px; text-align: center; }
+        .product-name { font-size: 11px; font-weight: bold; margin-bottom: 4px; word-break: break-word; }
+        .barcode { width: 100%; height: 45px; }
+        .code-text { font-size: 9px; color: #555; margin-top: 2px; }
+      </style></head>
+      <body><div class="label">
+        <div class="product-name">${p.name}</div>
+        <svg class="barcode" id="bc"></svg>
+        <div class="code-text">${p.code}</div>
+      </div>
+      <script>
+        JsBarcode('#bc', '${p.barcode || p.code}', { displayValue: false, margin: 2 });
+        setTimeout(() => { window.print(); window.close(); }, 500);
       <\/script></body></html>
     `);
     win.document.close();
@@ -339,13 +393,32 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
                 {results.failed > 0 && (
                   <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-lg px-3 py-2 text-sm flex-1">
                     <AlertCircle className="h-4 w-4" />
-                    <span className="font-semibold">{results.failed}</span> fallidos
+                    <span className="font-semibold">{results.failed}</span> no creados
                   </div>
                 )}
               </div>
               {results.errors.length > 0 && (
                 <div className="bg-destructive/5 rounded-lg p-3 text-xs text-destructive space-y-1 max-h-28 overflow-y-auto">
                   {results.errors.map((e, i) => <p key={i}>• {e}</p>)}
+                </div>
+              )}
+              {/* Individual product labels */}
+              {entityType === 'products' && importedProducts.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Etiquetas individuales</p>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {importedProducts.map(p => (
+                      <div key={p.id} className="flex items-center justify-between bg-secondary/40 rounded-lg px-3 py-2">
+                        <div>
+                          <span className="text-xs font-medium">{p.name}</span>
+                          <span className="text-[10px] text-muted-foreground ml-2">{p.code}</span>
+                        </div>
+                        <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs" onClick={() => printSingleLabel(p)}>
+                          <Printer className="h-3 w-3" /> Imprimir
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
