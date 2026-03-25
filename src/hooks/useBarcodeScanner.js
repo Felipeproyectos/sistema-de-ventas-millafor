@@ -22,12 +22,25 @@ export default function useBarcodeScanner({ onScan, enabled = true }) {
   useEffect(() => {
     if (!enabled) return;
 
+    const isUserTypingInField = () => {
+      const el = document.activeElement;
+      if (!el) return false;
+      const tag = el.tagName?.toLowerCase();
+      return tag === 'input' || tag === 'textarea' || el.isContentEditable;
+    };
+
     const handleKeyDown = (e) => {
+      // If the user is typing in a text field, do NOT intercept — let them type normally
+      if (isUserTypingInField()) {
+        bufferRef.current = '';
+        return;
+      }
+
       const now = Date.now();
       const timeDiff = now - lastKeyTimeRef.current;
       lastKeyTimeRef.current = now;
 
-      // If too slow between keystrokes, it's manual typing — reset buffer
+      // If too slow between keystrokes, reset buffer
       if (timeDiff > 100 && bufferRef.current.length > 0) {
         bufferRef.current = '';
       }
@@ -43,11 +56,8 @@ export default function useBarcodeScanner({ onScan, enabled = true }) {
 
       // Only accumulate printable characters
       if (e.key && e.key.length === 1) {
-        // If typing fast (scanner speed), prevent character from going into focused inputs
-        if (timeDiff < 50) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
+        e.preventDefault();
+        e.stopPropagation();
         bufferRef.current += e.key;
 
         // Auto-flush after short delay in case Enter is missing
@@ -58,7 +68,6 @@ export default function useBarcodeScanner({ onScan, enabled = true }) {
       }
     };
 
-    // Use capture:true so we intercept before focused inputs receive the keystroke
     document.addEventListener('keydown', handleKeyDown, true);
     return () => {
       document.removeEventListener('keydown', handleKeyDown, true);
