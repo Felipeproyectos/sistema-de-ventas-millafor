@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import BulkImportModal from '../components/BulkImportModal';
+import BarcodeLabelPrint from '../components/inventory/BarcodeLabelPrint';
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -172,6 +173,7 @@ export default function Inventory() {
                       )}
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
+                      {p.barcode && <BarcodeLabelPrint product={p} />}
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditProduct(p); setFormOpen(true); }}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
