@@ -156,8 +156,6 @@ export default function Quotes() {
         open={formOpen}
         onOpenChange={setFormOpen}
         customers={customers}
-        machines={machines}
-        products={products}
         onSaved={load}
       />
 

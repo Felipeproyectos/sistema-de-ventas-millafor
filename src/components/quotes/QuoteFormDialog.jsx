@@ -4,120 +4,124 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Search, UserPlus } from 'lucide-react';
 import { toast } from "sonner";
 import { base44 } from '@/api/base44Client';
 
-const emptyItem = () => ({ product_id: '', description: '', quantity: 1, unit_price: 0, purchase_price: 0 });
+const emptyItem = () => ({ description: '', quantity: 1, unit_price: 0 });
 
-export default function QuoteFormDialog({ open, onOpenChange, customers, machines, products, onSaved }) {
+export default function QuoteFormDialog({ open, onOpenChange, customers, onSaved }) {
   const [form, setForm] = useState({
-    customer_id: '', machine_id: '',
     date: new Date().toISOString().split('T')[0],
     expiry_date: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
-    type: 'venta',
     attended_by: '',
     items: [emptyItem()],
     labor_cost: 0, discount: 0, notes: '', status: 'pendiente'
   });
   const [saving, setSaving] = useState(false);
-  const [customerInput, setCustomerInput] = useState('');
+
+  // Customer fields
+  const [searchInput, setSearchInput] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [customerFields, setCustomerFields] = useState({ name: '', phone: '', email: '', address: '', rut: '' });
   const [isNewCustomer, setIsNewCustomer] = useState(false);
-  const [customerData, setCustomerData] = useState({ phone: '', email: '', address: '', rut: '' });
 
   useEffect(() => {
     if (open) {
       setForm({
-        customer_id: '', machine_id: '',
         date: new Date().toISOString().split('T')[0],
         expiry_date: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
-        type: 'venta',
         attended_by: '',
         items: [emptyItem()],
         labor_cost: 0, discount: 0, notes: '', status: 'pendiente'
       });
-      setCustomerInput('');
+      setSearchInput('');
+      setSelectedCustomerId('');
+      setCustomerFields({ name: '', phone: '', email: '', address: '', rut: '' });
       setIsNewCustomer(false);
-      setCustomerData({ phone: '', email: '', address: '', rut: '' });
+      setShowSuggestions(false);
     }
   }, [open]);
+
+  const filteredCustomers = customers.filter(c =>
+    c.name.toLowerCase().includes(searchInput.toLowerCase()) ||
+    (c.phone && c.phone.includes(searchInput))
+  );
+
+  const handleSelectExisting = (c) => {
+    setSelectedCustomerId(c.id);
+    setSearchInput(c.name);
+    setCustomerFields({
+      name: c.name,
+      phone: c.phone || '',
+      email: c.email || '',
+      address: c.address || '',
+      rut: c.notes?.replace('RUT: ', '') || ''
+    });
+    setIsNewCustomer(false);
+    setShowSuggestions(false);
+  };
+
+  const handleSearchChange = (val) => {
+    setSearchInput(val);
+    setSelectedCustomerId('');
+    setIsNewCustomer(false);
+    setCustomerFields(f => ({ ...f, name: val }));
+    setShowSuggestions(true);
+  };
+
+  const handleNewManual = () => {
+    setIsNewCustomer(true);
+    setShowSuggestions(false);
+    setCustomerFields(f => ({ ...f, name: searchInput }));
+  };
 
   const subtotal = form.items.reduce((s, i) => s + (i.quantity || 0) * (i.unit_price || 0), 0);
   const total = subtotal + (Number(form.labor_cost) || 0) - (Number(form.discount) || 0);
 
   const addItem = () => setForm(f => ({ ...f, items: [...f.items, emptyItem()] }));
   const removeItem = (idx) => setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
-
   const updateItem = (idx, field, value) => {
     setForm(f => {
       const items = [...f.items];
       items[idx] = { ...items[idx], [field]: value };
-      // When selecting a product, auto-fill price and description
-      if (field === 'product_id') {
-        const prod = products.find(p => p.id === value);
-        if (prod) {
-          items[idx].description = prod.name;
-          items[idx].unit_price = prod.sale_price || 0;
-          items[idx].purchase_price = prod.purchase_price || 0;
-        }
-      }
       return { ...f, items };
     });
   };
 
-  const customerMachines = machines.filter(m => !form.customer_id || m.customer_id === form.customer_id);
-
-  const handleCustomerSelect = (customerId) => {
-    const existing = customers.find(c => c.id === customerId);
-    if (existing) {
-      setForm(f => ({ ...f, customer_id: customerId }));
-      setCustomerInput(existing.name);
-      setIsNewCustomer(false);
-    }
-  };
-
-  const handleCustomerInputChange = (val) => {
-    setCustomerInput(val);
-    setIsNewCustomer(false);
-    setForm(f => ({ ...f, customer_id: '' }));
-  };
-
-  const handleCreateNewCustomer = () => {
-    if (customerInput.trim()) {
-      setForm(f => ({ ...f, customer_id: `new_${customerInput}` }));
-      setIsNewCustomer(true);
-    }
-  };
-
-  const filteredCustomers = customers.filter(c => c.name.toLowerCase().includes(customerInput.toLowerCase()));
-
   const handleSave = async () => {
-    if (!customerInput) { toast.error('Ingresa un cliente'); return; }
-    if (isNewCustomer && !customerData.phone) { toast.error('El teléfono del cliente es obligatorio'); return; }
-    if (form.items.length === 0 || !form.items[0].description) { toast.error('Agrega al menos un ítem'); return; }
+    if (!customerFields.name) { toast.error('Ingresa el nombre del cliente'); return; }
+    const validItems = form.items.filter(i => i.description);
+    if (validItems.length === 0) { toast.error('Agrega al menos un ítem con descripción'); return; }
+
     setSaving(true);
-    let customerId = form.customer_id;
-    let customerName = customerInput;
-    if (isNewCustomer) {
-      const newCustomer = await base44.entities.Customer.create({
-        name: customerName,
-        phone: customerData.phone,
-        email: customerData.email,
-        address: customerData.address,
-        notes: customerData.rut ? `RUT: ${customerData.rut}` : ''
+    let customerId = selectedCustomerId;
+    let customerName = customerFields.name;
+
+    if (!selectedCustomerId) {
+      // Create new customer
+      const newC = await base44.entities.Customer.create({
+        name: customerFields.name,
+        phone: customerFields.phone,
+        email: customerFields.email,
+        address: customerFields.address,
+        notes: customerFields.rut ? `RUT: ${customerFields.rut}` : ''
       });
-      customerId = newCustomer.id;
+      customerId = newC.id;
+      customers.push(newC);
     }
-    const machine = machines.find(m => m.id === form.machine_id);
+
     await base44.entities.Quote.create({
       ...form,
+      items: validItems,
       customer_id: customerId,
       customer_name: customerName,
-      machine_name: machine?.name || '',
       total,
       quote_number: `CT-${Date.now().toString().slice(-6)}`,
+      type: 'venta',
     });
+
     toast.success('Cotización creada');
     setSaving(false);
     onOpenChange(false);
@@ -126,107 +130,115 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-card border-border">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
           <DialogTitle>Nueva Cotización</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-          <div className="sm:col-span-2">
+        {/* Cliente */}
+        <div className="space-y-3 mt-2">
+          <div>
             <Label>Cliente *</Label>
-            <Input
-              value={customerInput}
-              onChange={e => handleCustomerInputChange(e.target.value)}
-              placeholder="Busca un cliente existente"
-              className="bg-secondary border-border"
-            />
-            {customerInput && !isNewCustomer && !form.customer_id && (
-              <div className="mt-2 bg-secondary rounded-lg border border-border max-h-40 overflow-y-auto">
-                {filteredCustomers.length > 0 ? (
-                  filteredCustomers.map(c => (
-                    <button
-                      key={c.id}
-                      onClick={() => handleCustomerSelect(c.id)}
-                      className="block w-full text-left text-sm px-3 py-2 hover:bg-primary/20 border-b border-border last:border-b-0"
-                    >
-                      {c.name}
-                    </button>
-                  ))
-                ) : (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchInput}
+                onChange={e => handleSearchChange(e.target.value)}
+                onFocus={() => setShowSuggestions(true)}
+                placeholder="Buscar cliente existente..."
+                className="pl-9 bg-secondary border-border"
+              />
+            </div>
+
+            {/* Suggestions dropdown */}
+            {showSuggestions && searchInput && (
+              <div className="mt-1 bg-secondary border border-border rounded-lg max-h-44 overflow-y-auto z-10 relative">
+                {filteredCustomers.length > 0 && filteredCustomers.map(c => (
                   <button
-                    onClick={handleCreateNewCustomer}
-                    className="block w-full text-left text-sm px-3 py-2 hover:bg-accent/20 text-accent font-medium"
+                    key={c.id}
+                    onMouseDown={() => handleSelectExisting(c)}
+                    className="flex w-full text-left text-sm px-3 py-2 hover:bg-primary/20 border-b border-border last:border-b-0 gap-2"
                   >
-                    + Crear nuevo cliente: {customerInput}
+                    <span className="font-medium">{c.name}</span>
+                    {c.phone && <span className="text-muted-foreground text-xs">{c.phone}</span>}
                   </button>
-                )}
+                ))}
+                <button
+                  onMouseDown={handleNewManual}
+                  className="flex items-center gap-2 w-full text-left text-sm px-3 py-2 hover:bg-accent/20 text-accent font-medium"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Agregar manualmente: <span className="underline">{searchInput}</span>
+                </button>
               </div>
             )}
-            {isNewCustomer && <p className="text-xs text-accent mt-2 font-medium">✓ Nuevo cliente: {customerInput}</p>}
+
+            {selectedCustomerId && (
+              <p className="text-xs text-accent mt-1">✓ Cliente existente seleccionado</p>
+            )}
           </div>
-           {isNewCustomer && (
-             <div className="sm:col-span-2 mt-4 pt-4 border-t border-border space-y-3" style={{gridColumn: 'span 2'}}>
-             <p className="text-xs font-semibold text-muted-foreground">Información del cliente</p>
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-               <div>
-                 <Label className="text-xs">Teléfono *</Label>
-                 <Input
-                   value={customerData.phone}
-                   onChange={e => setCustomerData(d => ({ ...d, phone: e.target.value }))}
-                   placeholder="+56 9 1234 5678"
-                   className="bg-secondary border-border text-sm"
-                 />
-               </div>
-               <div>
-                 <Label className="text-xs">Email</Label>
-                 <Input
-                   type="email"
-                   value={customerData.email}
-                   onChange={e => setCustomerData(d => ({ ...d, email: e.target.value }))}
-                   placeholder="cliente@email.com"
-                   className="bg-secondary border-border text-sm"
-                 />
-               </div>
-               <div>
-                 <Label className="text-xs">RUT</Label>
-                 <Input
-                   value={customerData.rut}
-                   onChange={e => setCustomerData(d => ({ ...d, rut: e.target.value }))}
-                   placeholder="XX.XXX.XXX-X"
-                   className="bg-secondary border-border text-sm"
-                 />
-               </div>
-               <div>
-                 <Label className="text-xs">Dirección</Label>
-                 <Input
-                   value={customerData.address}
-                   onChange={e => setCustomerData(d => ({ ...d, address: e.target.value }))}
-                   placeholder="Dirección del cliente"
-                   className="bg-secondary border-border text-sm"
-                 />
-               </div>
-             </div>
-           </div>
-           )}
-          <div>
-            <Label>Tipo de cotización</Label>
-            <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v, machine_id: '', items: [emptyItem()] }))}>
-              <SelectTrigger className="bg-secondary border-border"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="venta">Venta de productos</SelectItem>
-                <SelectItem value="reparacion">Reparación / Servicio</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {form.type === 'reparacion' && (
-            <div className="sm:col-span-2">
-              <Label>Equipo (opcional)</Label>
-              <Select value={form.machine_id} onValueChange={v => setForm(f => ({ ...f, machine_id: v }))}>
-                <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar equipo" /></SelectTrigger>
-                <SelectContent>{customerMachines.map(m => <SelectItem key={m.id} value={m.id}>{m.name} {m.brand ? `- ${m.brand}` : ''}</SelectItem>)}</SelectContent>
-              </Select>
+
+          {/* Customer fields — always visible once name is set */}
+          {(isNewCustomer || selectedCustomerId) && (
+            <div className="grid grid-cols-2 gap-3 p-3 bg-secondary/40 rounded-lg border border-border">
+              <p className="col-span-2 text-xs font-semibold text-muted-foreground">
+                {selectedCustomerId ? 'Datos del cliente' : 'Nuevo cliente — completa los datos'}
+              </p>
+              <div>
+                <Label className="text-xs">Nombre</Label>
+                <Input
+                  value={customerFields.name}
+                  onChange={e => setCustomerFields(f => ({ ...f, name: e.target.value }))}
+                  className="bg-background border-border text-sm"
+                  readOnly={!!selectedCustomerId}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Teléfono</Label>
+                <Input
+                  value={customerFields.phone}
+                  onChange={e => setCustomerFields(f => ({ ...f, phone: e.target.value }))}
+                  placeholder="+56 9 1234 5678"
+                  className="bg-background border-border text-sm"
+                  readOnly={!!selectedCustomerId}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Email</Label>
+                <Input
+                  value={customerFields.email}
+                  onChange={e => setCustomerFields(f => ({ ...f, email: e.target.value }))}
+                  placeholder="cliente@email.com"
+                  className="bg-background border-border text-sm"
+                  readOnly={!!selectedCustomerId}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">RUT</Label>
+                <Input
+                  value={customerFields.rut}
+                  onChange={e => setCustomerFields(f => ({ ...f, rut: e.target.value }))}
+                  placeholder="XX.XXX.XXX-X"
+                  className="bg-background border-border text-sm"
+                  readOnly={!!selectedCustomerId}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs">Dirección</Label>
+                <Input
+                  value={customerFields.address}
+                  onChange={e => setCustomerFields(f => ({ ...f, address: e.target.value }))}
+                  placeholder="Dirección"
+                  className="bg-background border-border text-sm"
+                  readOnly={!!selectedCustomerId}
+                />
+              </div>
             </div>
           )}
+        </div>
+
+        {/* Fechas y atendido */}
+        <div className="grid grid-cols-3 gap-4 mt-3">
           <div>
             <Label>Fecha</Label>
             <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="bg-secondary border-border" />
@@ -234,67 +246,47 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
           <div>
             <Label>Válida hasta</Label>
             <Input type="date" value={form.expiry_date} onChange={e => setForm(f => ({ ...f, expiry_date: e.target.value }))} className="bg-secondary border-border" />
-            </div>
-            <div className="sm:col-span-2">
+          </div>
+          <div>
             <Label>Atendido por</Label>
-            <Input value={form.attended_by} onChange={e => setForm(f => ({ ...f, attended_by: e.target.value }))} className="bg-secondary border-border" placeholder="Nombre de quien atiende" />
-            </div>
-            </div>
+            <Input value={form.attended_by} onChange={e => setForm(f => ({ ...f, attended_by: e.target.value }))} className="bg-secondary border-border" placeholder="Nombre" />
+          </div>
+        </div>
 
-        {/* Items */}
-        <div className="mt-5">
+        {/* Ítems */}
+        <div className="mt-4">
           <div className="flex items-center justify-between mb-2">
-            <Label className="text-sm font-semibold">
-              {form.type === 'venta' ? 'Productos del inventario' : 'Repuestos / Materiales'}
-            </Label>
+            <Label className="text-sm font-semibold">Ítems / Servicios</Label>
             <Button variant="outline" size="sm" onClick={addItem} className="gap-1 text-xs">
               <Plus className="h-3 w-3" /> Agregar
             </Button>
           </div>
 
-          {/* Column headers */}
-          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-2 mb-1 px-1">
-            <span className="text-xs text-muted-foreground">{form.type === 'venta' ? 'Producto' : 'Descripción'}</span>
-            <span className="text-xs text-muted-foreground w-20 text-center">Cant</span>
-            <span className="text-xs text-muted-foreground w-28 text-center">Precio</span>
-            <span className="text-xs text-muted-foreground w-8"></span>
+          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 mb-1 px-1">
+            <span className="text-xs text-muted-foreground">Descripción</span>
+            <span className="text-xs text-muted-foreground w-16 text-center">Cant</span>
+            <span className="text-xs text-muted-foreground w-28 text-center">Precio unit.</span>
+            <span className="w-8"></span>
           </div>
 
           <div className="space-y-2">
             {form.items.map((item, idx) => (
               <div key={idx} className="flex items-center gap-2">
-                {form.type === 'venta' ? (
-                  <Select value={item.product_id} onValueChange={v => updateItem(idx, 'product_id', v)}>
-                    <SelectTrigger className="bg-secondary border-border flex-1">
-                      <SelectValue placeholder="Seleccionar producto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map(p => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name} — Stock: {p.stock || 0}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    value={item.description}
-                    onChange={e => updateItem(idx, 'description', e.target.value)}
-                    className="bg-secondary border-border flex-1"
-                    placeholder="Descripción del servicio o repuesto"
-                  />
-                )}
+                <Input
+                  value={item.description}
+                  onChange={e => updateItem(idx, 'description', e.target.value)}
+                  className="bg-secondary border-border flex-1"
+                  placeholder="Descripción del ítem o servicio"
+                />
                 <Input
                   type="number" min="1" value={item.quantity}
                   onChange={e => updateItem(idx, 'quantity', Number(e.target.value))}
-                  className="w-20 bg-secondary border-border"
-                  placeholder="Cant"
+                  className="w-16 bg-secondary border-border"
                 />
                 <Input
                   type="number" value={item.unit_price}
                   onChange={e => updateItem(idx, 'unit_price', Number(e.target.value))}
                   className="w-28 bg-secondary border-border"
-                  placeholder="Precio"
                 />
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive flex-shrink-0" onClick={() => removeItem(idx)}>
                   <Trash2 className="h-4 w-4" />
@@ -304,9 +296,10 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
           </div>
         </div>
 
+        {/* Totales */}
         <div className="grid grid-cols-3 gap-4 mt-4">
           <div>
-            <Label>Mano de obra</Label>
+            <Label>Mano de obra / Servicio</Label>
             <Input type="number" value={form.labor_cost} onChange={e => setForm(f => ({ ...f, labor_cost: Number(e.target.value) }))} className="bg-secondary border-border" />
           </div>
           <div>
@@ -319,14 +312,14 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, machine
           </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-3">
           <Label>Notas / Condiciones</Label>
           <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="bg-secondary border-border" rows={2} placeholder="Garantía, tiempo de entrega, condiciones..." />
         </div>
 
         <div className="flex justify-end gap-2 mt-4">
-         <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-         <Button onClick={handleSave} disabled={saving}>{saving ? 'Guardando...' : 'Crear Cotización'}</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? 'Guardando...' : 'Crear Cotización'}</Button>
         </div>
       </DialogContent>
     </Dialog>
