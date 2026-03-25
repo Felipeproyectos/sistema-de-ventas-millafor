@@ -114,10 +114,12 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
       return;
     }
     const created = await base44.entities.Customer.create(newCustomerData);
+    // Add new customer to local list so it appears immediately in selector
+    customers.push(created);
     setForm(f => ({ ...f, customer_id: created.id }));
     setNewCustomerData({ name: '', phone: '', email: '', address: '' });
     setTab('select');
-    toast.success('Cliente creado');
+    toast.success(`Cliente "${created.name}" creado y seleccionado`);
   };
 
   const handleSave = async () => {
