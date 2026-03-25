@@ -175,7 +175,17 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader><DialogTitle>Nueva Venta</DialogTitle></DialogHeader>
 
-        {/* Scanner runs silently in background — no UI shown */}
+        {/* Scanner error alert */}
+        {scanFeedback.error && (
+          <div className="flex items-start gap-3 bg-destructive/15 border border-destructive/40 rounded-lg px-4 py-3 animate-in fade-in">
+            <span className="text-destructive text-lg">⛔</span>
+            <div>
+              <p className="text-sm font-bold text-destructive">CÓDIGO NO EXISTE — NO VÁLIDO</p>
+              <p className="text-xs text-destructive/80 mt-0.5">{scanFeedback.error}</p>
+            </div>
+            <button onClick={() => setScanFeedback(s => ({ ...s, error: '' }))} className="ml-auto text-destructive/60 hover:text-destructive text-lg leading-none">&times;</button>
+          </div>
+        )}
 
         <Tabs value={tab} onValueChange={setTab} className="mt-2">
           <TabsList className="grid w-full grid-cols-2">
