@@ -34,7 +34,7 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
       setTab('select');
       setScanFeedback({ last: '', error: '' });
       setScannerEnabled(true);
-      setScannerActive(false); // OFF por defecto — el usuario lo activa manualmente
+      setScannerActive(true); // Se activa al abrir el formulario — el usuario lo activa manualmente
     } else {
       setScannerEnabled(false);
       setScannerActive(false);
