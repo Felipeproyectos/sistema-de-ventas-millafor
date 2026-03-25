@@ -23,6 +23,7 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
   const [newCustomerData, setNewCustomerData] = useState({ name: '', phone: '', email: '', address: '' });
   const [scanFeedback, setScanFeedback] = useState({ last: '', error: '' });
   const [scannerEnabled, setScannerEnabled] = useState(false);
+  const [scannerActive, setScannerActive] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -33,8 +34,10 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
       setTab('select');
       setScanFeedback({ last: '', error: '' });
       setScannerEnabled(true);
+      setScannerActive(false);
     } else {
       setScannerEnabled(false);
+      setScannerActive(false);
     }
   }, [open]);
 
@@ -76,7 +79,7 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
     });
   }, [products]);
 
-  useBarcodeScanner({ onScan: handleBarcodeScan, enabled: open && scannerEnabled });
+  useBarcodeScanner({ onScan: handleBarcodeScan, enabled: open && scannerEnabled && scannerActive });
 
   const addItem = () => {
     setForm(f => ({ ...f, items: [...f.items, emptyItem()] }));
@@ -171,22 +174,40 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
         <DialogHeader><DialogTitle>Nueva Venta</DialogTitle></DialogHeader>
 
         {/* Barcode scanner area */}
-        <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
-          <div className="flex items-center gap-2 mb-1">
-            <Barcode className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-primary">Escáner de Código de Barras</span>
-            <span className="ml-auto text-[10px] bg-green-500/20 text-green-700 dark:text-green-400 rounded px-2 py-0.5 font-medium">
-              Activo
+        <div className={`border rounded-lg p-3 space-y-2 transition-colors ${scannerActive ? 'bg-green-500/10 border-green-500/40' : 'bg-secondary/30 border-border'}`}>
+          <div className="flex items-center gap-2">
+            <Barcode className={`h-4 w-4 ${scannerActive ? 'text-green-600' : 'text-muted-foreground'}`} />
+            <span className={`text-xs font-semibold ${scannerActive ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'}`}>
+              Escáner de Código de Barras
             </span>
+            <Button
+              type="button"
+              size="sm"
+              variant={scannerActive ? 'default' : 'outline'}
+              className={`ml-auto text-xs h-7 px-3 gap-1.5 ${scannerActive ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+              onClick={() => setScannerActive(v => !v)}
+            >
+              <Barcode className="h-3 w-3" />
+              {scannerActive ? '🔴 Detener escáner' : '▶ Activar escáner'}
+            </Button>
           </div>
-          <BarcodeScannerInput
-            onScan={handleBarcodeScan}
-            lastScanned={scanFeedback.last}
-            lastError={scanFeedback.error}
-          />
-          <p className="text-[10px] text-muted-foreground">
-            Apunta la pistola lectora hacia el código de barras del producto. También puedes escribirlo manualmente y presionar Enter.
-          </p>
+          {scannerActive && (
+            <>
+              <BarcodeScannerInput
+                onScan={handleBarcodeScan}
+                lastScanned={scanFeedback.last}
+                lastError={scanFeedback.error}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Escáner activo — apunta y dispara. Presiona "Detener escáner" cuando termines.
+              </p>
+            </>
+          )}
+          {!scannerActive && (
+            <p className="text-[10px] text-muted-foreground">
+              Presiona "Activar escáner" y luego usa la pistola para escanear productos.
+            </p>
+          )}
         </div>
 
         <Tabs value={tab} onValueChange={setTab} className="mt-2">
