@@ -11,7 +11,7 @@ const CONFIGS = {
     label: 'Productos (Inventario)',
     columns: [
       { key: 'nombre', label: 'nombre', required: true, example: 'Filtro de aceite' },
-      { key: 'codigo', label: 'codigo', required: true, example: 'FILT-001' },
+      { key: 'codigo', label: 'codigo', required: false, example: 'FILT-001 (opcional, se genera automático)' },
       { key: 'stock', label: 'stock', required: false, example: '50' },
       { key: 'stock_minimo', label: 'stock_minimo', required: false, example: '5' },
       { key: 'precio_compra', label: 'precio_compra', required: false, example: '3500' },
@@ -50,7 +50,7 @@ const CONFIGS = {
       category: row.categoria || '',
       description: row.descripcion || '',
     }),
-    validate: (row) => row.nombre && row.codigo,
+    validate: (row) => !!row.nombre,
     entity: 'Product',
   },
   customers: {
@@ -179,13 +179,35 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
     let success = 0;
     const errors = [];
 
+    // For products: fetch existing to generate unique codes
+    let existingProducts = [];
+    if (entityType === 'products') {
+      existingProducts = await base44.entities.Product.list();
+    }
+
+    const generateProductCode = (name, allExisting) => {
+      const words = (name || '').trim().toUpperCase().split(/\s+/).filter(Boolean);
+      const prefix = words.slice(0, 3).map(w => w.substring(0, 3)).join('-');
+      const matching = allExisting.filter(p => p.code?.startsWith(prefix));
+      const num = String(matching.length + 1).padStart(3, '0');
+      return `${prefix}-${num}`;
+    };
+
     for (const row of rows) {
       if (!config.validate(row)) {
-        errors.push(`Fila inválida: falta campo obligatorio (${config.columns.find(c => c.required)?.key})`);
+        errors.push(`Fila inválida: falta el nombre del producto`);
         continue;
       }
+
+      // Auto-generate code if missing (products only)
+      if (entityType === 'products' && !row.codigo) {
+        row.codigo = generateProductCode(row.nombre, existingProducts);
+      }
+
       const mapped = config.mapRow(row, customers);
-      await base44.entities[config.entity].create(mapped);
+      const created = await base44.entities[config.entity].create(mapped);
+      // Add to local list so next iterations don't generate duplicate codes
+      if (entityType === 'products') existingProducts.push(created);
       success++;
     }
 
