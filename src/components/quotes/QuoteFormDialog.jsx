@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Search, UserPlus } from 'lucide-react';
+import { Plus, Trash2, Search, UserPlus, Package, Wrench } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { base44 } from '@/api/base44Client';
 
-const emptyItem = () => ({ description: '', quantity: 1, unit_price: 0 });
+const emptyItem = () => ({ type: 'service', description: '', product_id: '', quantity: 1, unit_price: 0 });
 
-export default function QuoteFormDialog({ open, onOpenChange, customers, onSaved }) {
+export default function QuoteFormDialog({ open, onOpenChange, customers, products, onSaved }) {
   const [form, setForm] = useState({
     date: new Date().toISOString().split('T')[0],
     expiry_date: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
@@ -86,6 +87,18 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, onSaved
     setForm(f => {
       const items = [...f.items];
       items[idx] = { ...items[idx], [field]: value };
+      if (field === 'product_id') {
+        const prod = (products || []).find(p => p.id === value);
+        if (prod) {
+          items[idx].description = prod.name;
+          items[idx].unit_price = prod.sale_price || 0;
+        }
+      }
+      if (field === 'type') {
+        items[idx].description = '';
+        items[idx].product_id = '';
+        items[idx].unit_price = 0;
+      }
       return { ...f, items };
     });
   };
@@ -262,35 +275,66 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, onSaved
             </Button>
           </div>
 
-          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 mb-1 px-1">
-            <span className="text-xs text-muted-foreground">Descripción</span>
-            <span className="text-xs text-muted-foreground w-16 text-center">Cant</span>
-            <span className="text-xs text-muted-foreground w-28 text-center">Precio unit.</span>
-            <span className="w-8"></span>
-          </div>
-
-          <div className="space-y-2">
+          <div className="space-y-3">
             {form.items.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <Input
-                  value={item.description}
-                  onChange={e => updateItem(idx, 'description', e.target.value)}
-                  className="bg-secondary border-border flex-1"
-                  placeholder="Descripción del ítem o servicio"
-                />
-                <Input
-                  type="number" min="1" value={item.quantity}
-                  onChange={e => updateItem(idx, 'quantity', Number(e.target.value))}
-                  className="w-16 bg-secondary border-border"
-                />
-                <Input
-                  type="number" value={item.unit_price}
-                  onChange={e => updateItem(idx, 'unit_price', Number(e.target.value))}
-                  className="w-28 bg-secondary border-border"
-                />
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive flex-shrink-0" onClick={() => removeItem(idx)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+              <div key={idx} className="bg-secondary/40 border border-border rounded-lg p-3 space-y-2">
+                {/* Type toggle */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => updateItem(idx, 'type', 'service')}
+                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${
+                      item.type === 'service' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-primary/20'
+                    }`}
+                  >
+                    <Wrench className="h-3 w-3" /> Servicio / descripción
+                  </button>
+                  <button
+                    onClick={() => updateItem(idx, 'type', 'product')}
+                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${
+                      item.type === 'product' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:bg-primary/20'
+                    }`}
+                  >
+                    <Package className="h-3 w-3" /> Producto inventario
+                  </button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive ml-auto" onClick={() => removeItem(idx)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+
+                {/* Fields */}
+                <div className="flex gap-2">
+                  {item.type === 'product' ? (
+                    <Select value={item.product_id} onValueChange={v => updateItem(idx, 'product_id', v)}>
+                      <SelectTrigger className="bg-background border-border flex-1 text-sm">
+                        <SelectValue placeholder="Seleccionar producto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(products || []).map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.name} — ${(p.sale_price || 0).toLocaleString('es-CL')}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={item.description}
+                      onChange={e => updateItem(idx, 'description', e.target.value)}
+                      className="bg-background border-border flex-1 text-sm"
+                      placeholder="Descripción del servicio o repuesto"
+                    />
+                  )}
+                  <Input
+                    type="number" min="1" value={item.quantity}
+                    onChange={e => updateItem(idx, 'quantity', Number(e.target.value))}
+                    className="w-16 bg-background border-border text-sm"
+                    placeholder="Cant"
+                  />
+                  <Input
+                    type="number" value={item.unit_price}
+                    onChange={e => updateItem(idx, 'unit_price', Number(e.target.value))}
+                    className="w-28 bg-background border-border text-sm"
+                    placeholder="Precio"
+                  />
+                </div>
               </div>
             ))}
           </div>
