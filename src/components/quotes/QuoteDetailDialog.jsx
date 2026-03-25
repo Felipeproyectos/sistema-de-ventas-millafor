@@ -53,8 +53,8 @@ export default function QuoteDetailDialog({ quote, onClose, onRefresh }) {
     doc.setFillColor(...ORANGE);
     doc.rect(0, 0, pw, 3, 'F');
 
-    // Logo (top-left)
-    let headerBottom = 14;
+    // Logo (top-left) — prominent
+    let logoW = 0;
     if (settings?.logo_url) {
       try {
         const img = await new Promise((res, rej) => {
@@ -65,23 +65,35 @@ export default function QuoteDetailDialog({ quote, onClose, onRefresh }) {
         const c = document.createElement('canvas');
         c.width = img.width; c.height = img.height;
         c.getContext('2d').drawImage(img, 0, 0);
-        doc.addImage(c.toDataURL('image/png'), 'PNG', ml, 6, 24, 24);
-        headerBottom = Math.max(headerBottom, 32);
-      } catch {}
+        const logoH = 30;
+        logoW = (img.width / img.height) * logoH;
+        logoW = Math.min(logoW, 45); // max width
+        doc.addImage(c.toDataURL('image/png'), 'PNG', ml, 5, logoW, 30);
+      } catch { logoW = 0; }
     }
 
-    // Company name block (below or beside logo)
-    const nameX = settings?.logo_url ? ml + 27 : ml;
+    // Company info block — right of logo
+    const infoX = ml + logoW + (logoW > 0 ? 5 : 0);
+    let iy = 10;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(15);
+    doc.setFontSize(13);
     doc.setTextColor(...DARK);
-    doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), nameX, 16);
+    doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), infoX, iy);
+    iy += 5;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...GRAY);
-    if (settings?.address) { doc.text(settings.address, nameX, 21); }
-    if (settings?.phone)   { doc.text(settings.phone,   nameX, 26); }
-    if (settings?.email)   { doc.text(settings.email,   nameX, 31); }
+    if (settings?.legal_rep) {
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(...DARK);
+      doc.text(`Rep. Legal: ${settings.legal_rep}`, infoX, iy); iy += 4.5;
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(...GRAY);
+    }
+    if (settings?.tax_id)   { doc.text(`RUT/NIT: ${settings.tax_id}`, infoX, iy);   iy += 4.5; }
+    if (settings?.phone)    { doc.text(`Tel: ${settings.phone}`,      infoX, iy);   iy += 4.5; }
+    if (settings?.email)    { doc.text(`Email: ${settings.email}`,    infoX, iy);   iy += 4.5; }
+    if (settings?.address)  { doc.text(`Dir: ${settings.address}`,    infoX, iy);   iy += 4.5; }
+
+    const headerBottom = Math.max(iy + 2, 38);
 
     // COTIZACION + folio (top-right box)
     doc.setFillColor(...LGRAY);
