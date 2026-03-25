@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Package, Plus, Search, AlertTriangle, Pencil, Trash2, Upload, History, ArrowDownCircle, ArrowUpCircle, SlidersHorizontal } from 'lucide-react';
+import { Package, Plus, Search, AlertTriangle, Pencil, Trash2, Upload, History, ArrowDownCircle, ArrowUpCircle, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -50,6 +50,28 @@ export default function Inventory() {
       setForm({ name: '', code: '', barcode: '', stock: 0, purchase_price: 0, sale_price: 0, min_stock: 5, category: '', description: '' });
     }
   }, [editProduct, formOpen]);
+
+  // Generate internal product code from name: e.g. "Teclado USB Logitech" → "TEC-USB-001"
+  const generateCode = () => {
+    if (!form.name) { toast.error('Escribe el nombre primero'); return; }
+    const words = form.name.trim().toUpperCase().split(/\s+/).filter(Boolean);
+    const prefix = words.slice(0, 3).map(w => w.substring(0, 3)).join('-');
+    // Find next sequential number for this prefix
+    const existing = products.filter(p => p.code?.startsWith(prefix));
+    const num = String(existing.length + 1).padStart(3, '0');
+    setForm(f => ({ ...f, code: `${prefix}-${num}` }));
+  };
+
+  // Generate internal barcode: MIL + yyyyMMdd + sequential
+  const generateBarcode = () => {
+    const today = new Date();
+    const datePart = today.getFullYear().toString() +
+      String(today.getMonth() + 1).padStart(2, '0') +
+      String(today.getDate()).padStart(2, '0');
+    const seq = String(products.length + 1).padStart(4, '0');
+    const barcode = `MIL${datePart}${seq}`;
+    setForm(f => ({ ...f, barcode }));
+  };
 
   const handleSave = async () => {
     if (!form.name) { toast.error('El nombre es obligatorio'); return; }
@@ -249,16 +271,28 @@ export default function Inventory() {
             </div>
             <div>
               <Label>Código *</Label>
-              <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} className="bg-secondary border-border" />
+              <div className="flex gap-2">
+                <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} className="bg-secondary border-border flex-1" placeholder="Ej: TEC-USB-001" />
+                <Button type="button" variant="outline" size="sm" onClick={generateCode} className="gap-1 text-xs whitespace-nowrap border-primary/40 text-primary hover:bg-primary/10">
+                  <Sparkles className="h-3 w-3" /> Generar
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Se genera automáticamente desde el nombre del producto.</p>
             </div>
             <div>
               <Label>Código de Barras</Label>
-              <Input
-                value={form.barcode}
-                onChange={e => setForm(f => ({ ...f, barcode: e.target.value }))}
-                className="bg-secondary border-border font-mono"
-                placeholder="EAN, UPC, Code128..."
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={form.barcode}
+                  onChange={e => setForm(f => ({ ...f, barcode: e.target.value }))}
+                  className="bg-secondary border-border font-mono flex-1"
+                  placeholder="EAN, UPC, Code128..."
+                />
+                <Button type="button" variant="outline" size="sm" onClick={generateBarcode} className="gap-1 text-xs whitespace-nowrap border-primary/40 text-primary hover:bg-primary/10">
+                  <Sparkles className="h-3 w-3" /> Generar
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Genera un código interno único si no tienes uno físico.</p>
             </div>
             <div>
               <Label>Stock</Label>
