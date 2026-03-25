@@ -41,7 +41,7 @@ export default function useBarcodeScanner({ onScan, enabled = true }) {
       }
 
       // Only accumulate printable characters
-      if (e.key.length === 1) {
+      if (e.key && e.key.length === 1) {
         bufferRef.current += e.key;
 
         // Auto-flush after short delay in case Enter is missing
