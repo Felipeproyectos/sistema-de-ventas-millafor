@@ -162,20 +162,25 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
     setStatus('loading');
     setResults({ success: 0, failed: 0, errors: [] });
 
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-
-    const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url,
-      json_schema: config.schema,
-    });
-
-    if (extracted.status !== 'success') {
+    // Parse file directly with XLSX
+    let rows = [];
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    } catch (e) {
       setStatus('error');
       setResults({ success: 0, failed: 0, errors: ['No se pudo leer el archivo. Verifica el formato.'] });
       return;
     }
 
-    const rows = extracted.output?.items || (Array.isArray(extracted.output) ? extracted.output : []);
+    if (rows.length === 0) {
+      setStatus('error');
+      setResults({ success: 0, failed: 0, errors: ['El archivo está vacío o no tiene datos.'] });
+      return;
+    }
+
     let success = 0;
     const errors = [];
 
@@ -206,7 +211,6 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
 
       const mapped = config.mapRow(row, customers);
       const created = await base44.entities[config.entity].create(mapped);
-      // Add to local list so next iterations don't generate duplicate codes
       if (entityType === 'products') existingProducts.push(created);
       success++;
     }
