@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/api/base44Client';
-import { Upload, Download, CheckCircle2, AlertCircle, Loader2, FileSpreadsheet } from 'lucide-react';
+import { Upload, Download, CheckCircle2, AlertCircle, Loader2, FileSpreadsheet, Printer } from 'lucide-react';
 import { toast } from "sonner";
 
 const CONFIGS = {
@@ -148,6 +148,7 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState('idle'); // idle | loading | done | error
   const [results, setResults] = useState({ success: 0, failed: 0, errors: [] });
+  const [importedProducts, setImportedProducts] = useState([]);
 
   const config = CONFIGS[entityType];
   if (!config) return null;
@@ -183,6 +184,7 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
 
     let success = 0;
     const errors = [];
+    const createdProducts = [];
 
     // For products: fetch existing to generate unique codes
     let existingProducts = [];
@@ -211,10 +213,14 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
 
       const mapped = config.mapRow(row, customers);
       const created = await base44.entities[config.entity].create(mapped);
-      if (entityType === 'products') existingProducts.push(created);
+      if (entityType === 'products') {
+        existingProducts.push(created);
+        createdProducts.push(created);
+      }
       success++;
     }
 
+    setImportedProducts(createdProducts);
     setResults({ success, failed: errors.length, errors });
     setStatus('done');
     if (success > 0) {
@@ -223,8 +229,42 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
     }
   };
 
+  const handlePrintAll = () => {
+    if (importedProducts.length === 0) return;
+    const win = window.open('', '_blank', 'width=800,height=600');
+    const labelsHtml = importedProducts.map(p => `
+      <div class="label">
+        <div class="product-name">${p.name}</div>
+        <svg class="barcode" data-code="${p.barcode || p.code}"></svg>
+        <div class="code-text">${p.code}</div>
+      </div>
+    `).join('');
+    win.document.write(`
+      <!DOCTYPE html><html><head><title>Etiquetas</title>
+      <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 10px; }
+        .grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .label { width: 58mm; border: 1px solid #ccc; border-radius: 4px; padding: 6px; text-align: center; page-break-inside: avoid; }
+        .product-name { font-size: 10px; font-weight: bold; margin-bottom: 4px; word-break: break-word; }
+        .barcode { width: 100%; height: 40px; }
+        .code-text { font-size: 9px; color: #555; margin-top: 2px; }
+        @media print { body { margin: 0; } }
+      </style></head>
+      <body><div class="grid">${labelsHtml}</div>
+      <script>
+        document.querySelectorAll('.barcode').forEach(el => {
+          const code = el.getAttribute('data-code');
+          if (code) JsBarcode(el, code, { displayValue: false, margin: 2 });
+        });
+        setTimeout(() => { window.print(); window.close(); }, 800);
+      <\/script></body></html>
+    `);
+    win.document.close();
+  };
+
   const handleClose = (v) => {
-    if (!v) { setFile(null); setStatus('idle'); setResults({ success: 0, failed: 0, errors: [] }); }
+    if (!v) { setFile(null); setStatus('idle'); setResults({ success: 0, failed: 0, errors: [] }); setImportedProducts([]); }
     onOpenChange(v);
   };
 
@@ -319,6 +359,11 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => handleClose(false)}>Cerrar</Button>
+            {status === 'done' && entityType === 'products' && importedProducts.length > 0 && (
+              <Button variant="outline" onClick={handlePrintAll} className="gap-2">
+                <Printer className="h-4 w-4" /> Imprimir etiquetas ({importedProducts.length})
+              </Button>
+            )}
             <Button onClick={handleImport} disabled={!file || status === 'loading'} className="gap-2">
               {status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               {status === 'loading' ? 'Importando...' : 'Importar'}
