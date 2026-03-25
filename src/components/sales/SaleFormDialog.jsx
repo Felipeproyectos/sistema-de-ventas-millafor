@@ -173,42 +173,7 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader><DialogTitle>Nueva Venta</DialogTitle></DialogHeader>
 
-        {/* Barcode scanner area */}
-        <div className={`border rounded-lg p-3 space-y-2 transition-colors ${scannerActive ? 'bg-green-500/10 border-green-500/40' : 'bg-secondary/30 border-border'}`}>
-          <div className="flex items-center gap-2">
-            <Barcode className={`h-4 w-4 ${scannerActive ? 'text-green-600' : 'text-muted-foreground'}`} />
-            <span className={`text-xs font-semibold ${scannerActive ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'}`}>
-              Escáner de Código de Barras
-            </span>
-            <Button
-              type="button"
-              size="sm"
-              variant={scannerActive ? 'default' : 'outline'}
-              className={`ml-auto text-xs h-7 px-3 gap-1.5 ${scannerActive ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
-              onClick={() => setScannerActive(v => !v)}
-            >
-              <Barcode className="h-3 w-3" />
-              {scannerActive ? '🔴 Detener escáner' : '▶ Activar escáner'}
-            </Button>
-          </div>
-          {scannerActive && (
-            <>
-              <BarcodeScannerInput
-                onScan={handleBarcodeScan}
-                lastScanned={scanFeedback.last}
-                lastError={scanFeedback.error}
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Escáner activo — apunta y dispara. Presiona "Detener escáner" cuando termines.
-              </p>
-            </>
-          )}
-          {!scannerActive && (
-            <p className="text-[10px] text-muted-foreground">
-              Presiona "Activar escáner" y luego usa la pistola para escanear productos.
-            </p>
-          )}
-        </div>
+        {/* Scanner runs silently in background — no UI shown */}
 
         <Tabs value={tab} onValueChange={setTab} className="mt-2">
           <TabsList className="grid w-full grid-cols-2">
