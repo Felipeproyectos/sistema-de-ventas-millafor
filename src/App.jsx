@@ -48,16 +48,8 @@ const AuthenticatedApp = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/repairs" element={<Repairs />} />
         <Route path="/quotes" element={<Quotes />} />
-        <Route path="/users" element={<Users />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/sales" element={<Sales />} />
-        <Route path="/customers" element={<Customers />} />
-        <Route path="/machines" element={<Machines />} />
-        <Route path="/history" element={<HistoryPage />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/templates" element={<Templates />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/warranty" element={<Warranty />} />
         <Route path="/credit" element={<Credit />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

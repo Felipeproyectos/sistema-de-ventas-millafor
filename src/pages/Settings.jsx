@@ -1,13 +1,30 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Settings as SettingsIcon, Upload, Save } from 'lucide-react';
+import { Settings as SettingsIcon, Upload, Save, FileText, FileCheck, UserCog, History, Users, Monitor } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PageHeader from '../components/PageHeader';
 import { toast } from "sonner";
+import Reports from './Reports';
+import Templates from './Templates';
+import UsersPage from './Users';
+import HistoryPage from './HistoryPage';
+import Customers from './Customers';
+import Machines from './Machines';
+
+const tabs = [
+  { id: 'general', label: 'General', icon: SettingsIcon },
+  { id: 'reports', label: 'Reportes', icon: FileText },
+  { id: 'templates', label: 'Plantillas', icon: FileCheck },
+  { id: 'users', label: 'Usuarios', icon: UserCog },
+  { id: 'history', label: 'Historial', icon: History },
+  { id: 'customers', label: 'Clientes', icon: Users },
+  { id: 'machines', label: 'Equipos', icon: Monitor },
+];
 
 export default function Settings() {
+  const [activeTab, setActiveTab] = useState('general');
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({
     company_name: '', logo_url: '', address: '', phone: '',
@@ -62,80 +79,101 @@ export default function Settings() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Configuración" description="Personaliza la información de tu empresa" />
+      <PageHeader title="Configuración" description="Administra todas las opciones del sistema" />
 
-      <div className="max-w-2xl">
-        <div className="bg-card border border-border rounded-xl p-6 space-y-6">
-          {/* Logo */}
-          <div>
-            <Label className="text-sm font-semibold mb-3 block">Logo de la Empresa</Label>
-            <div className="flex items-center gap-4">
-              {form.logo_url ? (
-                <img src={form.logo_url} alt="Logo" className="h-16 w-16 rounded-xl object-cover border border-border" />
-              ) : (
-                <div className="h-16 w-16 rounded-xl bg-secondary flex items-center justify-center">
-                  <SettingsIcon className="h-6 w-6 text-muted-foreground" />
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-1 bg-secondary/50 rounded-xl p-1">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <tab.icon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      {activeTab === 'general' && (
+        <div className="max-w-2xl">
+          <div className="bg-card border border-border rounded-xl p-6 space-y-6">
+            <div>
+              <Label className="text-sm font-semibold mb-3 block">Logo de la Empresa</Label>
+              <div className="flex items-center gap-4">
+                {form.logo_url ? (
+                  <img src={form.logo_url} alt="Logo" className="h-16 w-16 rounded-xl object-cover border border-border" />
+                ) : (
+                  <div className="h-16 w-16 rounded-xl bg-secondary flex items-center justify-center">
+                    <SettingsIcon className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div>
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors">
+                      <Upload className="h-4 w-4" />
+                      {uploading ? 'Subiendo...' : 'Subir Logo'}
+                    </span>
+                  </label>
                 </div>
-              )}
-              <div>
-                <label className="cursor-pointer">
-                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors">
-                    <Upload className="h-4 w-4" />
-                    {uploading ? 'Subiendo...' : 'Subir Logo'}
-                  </span>
-                </label>
               </div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <Label>Nombre de la Empresa *</Label>
+                <Input value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} className="bg-secondary border-border" />
+              </div>
+              <div>
+                <Label>RUT/NIT</Label>
+                <Input value={form.tax_id} onChange={e => setForm(f => ({ ...f, tax_id: e.target.value }))} className="bg-secondary border-border" />
+              </div>
+              <div>
+                <Label>Teléfono</Label>
+                <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="bg-secondary border-border" />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="bg-secondary border-border" />
+              </div>
+              <div>
+                <Label>Sitio Web</Label>
+                <Input value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} className="bg-secondary border-border" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Representante Legal</Label>
+                <Input value={form.legal_rep} onChange={e => setForm(f => ({ ...f, legal_rep: e.target.value }))} className="bg-secondary border-border" placeholder="Nombre completo del representante" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Dirección</Label>
+                <Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} className="bg-secondary border-border" />
+              </div>
+            </div>
+            <div>
+              <Label>Color de Acento</Label>
+              <div className="flex items-center gap-3 mt-1">
+                <input type="color" value={form.accent_color} onChange={e => setForm(f => ({ ...f, accent_color: e.target.value }))} className="h-10 w-10 rounded-lg border border-border cursor-pointer" />
+                <Input value={form.accent_color} onChange={e => setForm(f => ({ ...f, accent_color: e.target.value }))} className="bg-secondary border-border w-32" />
+              </div>
+            </div>
+            <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
+              <Save className="h-4 w-4" />
+              {saving ? 'Guardando...' : 'Guardar Configuración'}
+            </Button>
           </div>
-
-          {/* Company Info */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <Label>Nombre de la Empresa *</Label>
-              <Input value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} className="bg-secondary border-border" />
-            </div>
-            <div>
-              <Label>RUT/NIT</Label>
-              <Input value={form.tax_id} onChange={e => setForm(f => ({ ...f, tax_id: e.target.value }))} className="bg-secondary border-border" />
-            </div>
-            <div>
-              <Label>Teléfono</Label>
-              <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="bg-secondary border-border" />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="bg-secondary border-border" />
-            </div>
-            <div>
-              <Label>Sitio Web</Label>
-              <Input value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} className="bg-secondary border-border" />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Representante Legal</Label>
-              <Input value={form.legal_rep} onChange={e => setForm(f => ({ ...f, legal_rep: e.target.value }))} className="bg-secondary border-border" placeholder="Nombre completo del representante" />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Dirección</Label>
-              <Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} className="bg-secondary border-border" />
-            </div>
-          </div>
-
-          {/* Color */}
-          <div>
-            <Label>Color de Acento</Label>
-            <div className="flex items-center gap-3 mt-1">
-              <input type="color" value={form.accent_color} onChange={e => setForm(f => ({ ...f, accent_color: e.target.value }))} className="h-10 w-10 rounded-lg border border-border cursor-pointer" />
-              <Input value={form.accent_color} onChange={e => setForm(f => ({ ...f, accent_color: e.target.value }))} className="bg-secondary border-border w-32" />
-            </div>
-          </div>
-
-          <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
-            <Save className="h-4 w-4" />
-            {saving ? 'Guardando...' : 'Guardar Configuración'}
-          </Button>
         </div>
-      </div>
+      )}
+      {activeTab === 'reports' && <Reports />}
+      {activeTab === 'templates' && <Templates />}
+      {activeTab === 'users' && <UsersPage />}
+      {activeTab === 'history' && <HistoryPage />}
+      {activeTab === 'customers' && <Customers />}
+      {activeTab === 'machines' && <Machines />}
     </div>
   );
 }

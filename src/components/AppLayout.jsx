@@ -16,12 +16,6 @@ const mainNavItems = [
 ];
 
 const settingsNavItems = [
-{ path: '/reports', label: 'Reportes', icon: FileText },
-{ path: '/templates', label: 'Plantillas', icon: FileCheck },
-{ path: '/users', label: 'Usuarios', icon: UserCog },
-{ path: '/history', label: 'Historial', icon: History },
-{ path: '/customers', label: 'Clientes', icon: Users },
-{ path: '/machines', label: 'Equipos', icon: Monitor },
 { path: '/settings', label: 'Configuración', icon: Settings }
 ];
 
