@@ -324,15 +324,15 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl bg-card border-border">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col bg-card border-border">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-primary" />
             Carga Masiva — {config.label}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 mt-2">
+        <div className="space-y-5 mt-2 overflow-y-auto flex-1 pr-1">
           {/* Format reference */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Formato requerido del archivo</p>
@@ -430,7 +430,7 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
             </div>
           )}
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 flex-shrink-0 pt-2 border-t border-border">
             <Button variant="outline" onClick={() => handleClose(false)}>Cerrar</Button>
             {status === 'done' && entityType === 'products' && importedProducts.length > 0 && (
               <Button variant="outline" onClick={handlePrintAll} className="gap-2">
