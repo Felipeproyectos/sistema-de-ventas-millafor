@@ -144,7 +144,7 @@ function downloadTemplate(config) {
   XLSX.writeFile(wb, `plantilla_${config.entity.toLowerCase()}.xlsx`);
 }
 
-export default function BulkImportModal({ open, onOpenChange, entityType, customers = [], onSuccess }) {
+export default function BulkImportModal({ open, onOpenChange, entityType, customers = [], onSuccess, defaultCategory = '' }) {
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState('idle'); // idle | loading | done | error
   const [results, setResults] = useState({ success: 0, failed: 0, errors: [] });
@@ -157,6 +157,9 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
     const f = e.target.files[0];
     if (f) setFile(f);
   };
+
+  // Pre-fill category for bulk imports when a category is selected
+  const effectiveDefaultCategory = defaultCategory;
 
   const handleImport = async () => {
     if (!file) { toast.error('Selecciona un archivo primero'); return; }
@@ -240,7 +243,10 @@ export default function BulkImportModal({ open, onOpenChange, entityType, custom
       }
 
       const mapped = config.mapRow(row, customers);
-      if (entityType === 'products') mapped.barcode = row._barcode;
+      if (entityType === 'products') {
+        mapped.barcode = row._barcode;
+        if (!mapped.category && effectiveDefaultCategory) mapped.category = effectiveDefaultCategory;
+      }
       const created = await base44.entities[config.entity].create(mapped);
       if (entityType === 'products') {
         existingProducts.push(created);

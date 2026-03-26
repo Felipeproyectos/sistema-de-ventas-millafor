@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Package, Plus, Search, AlertTriangle, Pencil, Trash2, Upload, History, ArrowDownCircle, ArrowUpCircle, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Package, Plus, Search, AlertTriangle, Pencil, Trash2, Upload, History, ArrowDownCircle, ArrowUpCircle, SlidersHorizontal, FolderPlus, Folder, FolderOpen, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -25,7 +25,11 @@ export default function Inventory() {
   const [deleteId, setDeleteId] = useState(null);
   const [form, setForm] = useState({ name: '', code: '', barcode: '', stock: 0, purchase_price: 0, sale_price: 0, min_stock: 5, category: '', description: '' });
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkCategory, setBulkCategory] = useState('');
   const [tab, setTab] = useState('products');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
 
   async function load() {
     const [p, m] = await Promise.all([
@@ -48,41 +52,54 @@ export default function Inventory() {
         category: editProduct.category || '', description: editProduct.description || '',
       });
     } else {
-      setForm({ name: '', code: '', barcode: '', stock: 0, purchase_price: 0, sale_price: 0, min_stock: 5, category: '', description: '' });
+      setForm({ name: '', code: '', barcode: '', stock: 0, purchase_price: 0, sale_price: 0, min_stock: 5, category: selectedCategory === 'all' ? '' : selectedCategory, description: '' });
     }
   }, [editProduct, formOpen]);
 
-  // Generate internal product code from name: e.g. "Teclado USB Logitech" → "TEC-USB-001"
-  const generateCode = () => {
-    if (!form.name) { toast.error('Escribe el nombre primero'); return; }
-    const words = form.name.trim().toUpperCase().split(/\s+/).filter(Boolean);
+  // Derive categories from products + any new ones created
+  const categories = [...new Set(products.map(p => p.category).filter(Boolean))].sort();
+
+  // Auto-generate code from name
+  const autoGenerateCode = (name, currentProducts = products) => {
+    if (!name) return '';
+    const words = name.trim().toUpperCase().split(/\s+/).filter(Boolean);
     const prefix = words.slice(0, 3).map(w => w.substring(0, 3)).join('-');
-    // Find next sequential number for this prefix
-    const existing = products.filter(p => p.code?.startsWith(prefix));
+    const existing = currentProducts.filter(p => p.code?.startsWith(prefix) && p.id !== editProduct?.id);
     const num = String(existing.length + 1).padStart(3, '0');
-    setForm(f => ({ ...f, code: `${prefix}-${num}` }));
+    return `${prefix}-${num}`;
   };
 
-  // Generate internal barcode: MIL + yyyyMMdd + sequential
-  const generateBarcode = () => {
+  // Auto-generate barcode
+  const autoGenerateBarcode = (currentProducts = products) => {
     const today = new Date();
     const datePart = today.getFullYear().toString() +
       String(today.getMonth() + 1).padStart(2, '0') +
       String(today.getDate()).padStart(2, '0');
-    const seq = String(products.length + 1).padStart(4, '0');
-    const barcode = `MIL${datePart}${seq}`;
-    setForm(f => ({ ...f, barcode }));
+    const seq = String(currentProducts.length + 1).padStart(4, '0');
+    return `MIL${datePart}${seq}`;
+  };
+
+  const handleNameChange = (name) => {
+    const updates = { name };
+    if (!editProduct) {
+      if (!form.code || form.code === autoGenerateCode(form.name)) {
+        updates.code = autoGenerateCode(name);
+      }
+      if (!form.barcode) {
+        updates.barcode = autoGenerateBarcode();
+      }
+    }
+    setForm(f => ({ ...f, ...updates }));
   };
 
   const handleSave = async () => {
     if (!form.name) { toast.error('El nombre es obligatorio'); return; }
     if (!form.code) { toast.error('El código es obligatorio'); return; }
 
-    // Check barcode uniqueness
     if (form.barcode) {
       const duplicate = products.find(p => p.barcode === form.barcode && p.id !== editProduct?.id);
       if (duplicate) {
-        toast.error(`El código de barras "${form.barcode}" ya está asignado a: ${duplicate.name}`);
+        toast.error(`El código de barras ya está asignado a: ${duplicate.name}`);
         return;
       }
     }
@@ -106,12 +123,39 @@ export default function Inventory() {
     load();
   };
 
-  const filtered = products.filter(p =>
-    !search ||
-    p.name?.toLowerCase().includes(search.toLowerCase()) ||
-    p.code?.toLowerCase().includes(search.toLowerCase()) ||
-    p.barcode?.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleAddCategory = () => {
+    const cat = newCategoryInput.trim();
+    if (!cat) return;
+    // Open new product form pre-filled with this category
+    setSelectedCategory(cat);
+    setNewCategoryInput('');
+    setShowNewCategoryInput(false);
+    toast.success(`Categoría "${cat}" creada. Agrega productos para poblarla.`);
+  };
+
+  const handleOpenBulk = (category = '') => {
+    setBulkCategory(category);
+    setBulkOpen(true);
+  };
+
+  const filtered = products.filter(p => {
+    const matchSearch = !search ||
+      p.name?.toLowerCase().includes(search.toLowerCase()) ||
+      p.code?.toLowerCase().includes(search.toLowerCase()) ||
+      p.barcode?.toLowerCase().includes(search.toLowerCase());
+    const matchCat = selectedCategory === 'all' || p.category === selectedCategory;
+    return matchSearch && matchCat;
+  });
+
+  // Group by category for the "all" view
+  const grouped = {};
+  if (selectedCategory === 'all') {
+    filtered.forEach(p => {
+      const cat = p.category || 'Sin categoría';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(p);
+    });
+  }
 
   const filteredMovements = movements.filter(m =>
     !search ||
@@ -121,12 +165,50 @@ export default function Inventory() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
 
+  const renderProductCard = (p) => (
+    <div key={p.id} className={cn(
+      "bg-card border rounded-xl p-4 transition-all hover:border-primary/30",
+      (p.stock || 0) <= (p.min_stock || 5) ? "border-warning/30" : "border-border"
+    )}>
+      <div className="flex items-start justify-between mb-2">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold text-foreground truncate">{p.name}</h3>
+          <p className="text-xs text-muted-foreground">Cód: {p.code}</p>
+          {p.barcode && <p className="text-xs text-primary/70 font-mono mt-0.5">🔲 {p.barcode}</p>}
+        </div>
+        <div className="flex gap-1 flex-shrink-0">
+          {p.barcode && <BarcodeLabelPrint product={p} />}
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditProduct(p); setFormOpen(true); }}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(p.id)}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 mb-2">
+        {(p.stock || 0) <= (p.min_stock || 5) && <AlertTriangle className="h-3.5 w-3.5 text-warning" />}
+        <span className={cn("text-2xl font-bold", (p.stock || 0) <= (p.min_stock || 5) ? "text-warning" : "text-foreground")}>
+          {p.stock || 0}
+        </span>
+        <span className="text-xs text-muted-foreground">unidades</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="bg-secondary/50 rounded-lg p-2">
+          <p className="text-muted-foreground">Compra</p>
+          <p className="font-semibold">${(p.purchase_price || 0).toLocaleString('es-CL')}</p>
+        </div>
+        <div className="bg-secondary/50 rounded-lg p-2">
+          <p className="text-muted-foreground">Venta</p>
+          <p className="font-semibold text-primary">${(p.sale_price || 0).toLocaleString('es-CL')}</p>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
-      <PageHeader title="Inventario" description="Gestión de productos, stock y movimientos">
-        <Button variant="outline" onClick={() => setBulkOpen(true)} className="gap-2">
-          <Upload className="h-4 w-4" /> Carga masiva
-        </Button>
+      <PageHeader title="Inventario" description="Gestión de productos por categoría">
         <Button onClick={() => { setEditProduct(null); setFormOpen(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> Nuevo Producto
         </Button>
@@ -153,57 +235,148 @@ export default function Inventory() {
         </TabsList>
 
         <TabsContent value="products" className="mt-4">
-          {filtered.length === 0 ? (
-            <EmptyState icon={Package} title="Sin productos" description="Agrega tu primer producto al inventario" />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filtered.map(p => (
-                <div key={p.id} className={cn(
-                  "bg-card border rounded-xl p-5 transition-all hover:border-primary/30",
-                  (p.stock || 0) <= (p.min_stock || 5) ? "border-warning/30" : "border-border"
-                )}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-foreground truncate">{p.name}</h3>
-                      <p className="text-xs text-muted-foreground">Cód: {p.code}</p>
-                      {p.barcode && (
-                        <p className="text-xs text-primary/70 font-mono mt-0.5">
-                          🔲 {p.barcode}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-1 flex-shrink-0">
-                      {p.barcode && <BarcodeLabelPrint product={p} />}
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditProduct(p); setFormOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteId(p.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mb-3">
-                    {(p.stock || 0) <= (p.min_stock || 5) && <AlertTriangle className="h-3.5 w-3.5 text-warning" />}
-                    <span className={cn("text-2xl font-bold", (p.stock || 0) <= (p.min_stock || 5) ? "text-warning" : "text-foreground")}>
-                      {p.stock || 0}
-                    </span>
-                    <span className="text-xs text-muted-foreground">unidades</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-secondary/50 rounded-lg p-2">
-                      <p className="text-muted-foreground">Compra</p>
-                      <p className="font-semibold">${(p.purchase_price || 0).toLocaleString('es-CL')}</p>
-                    </div>
-                    <div className="bg-secondary/50 rounded-lg p-2">
-                      <p className="text-muted-foreground">Venta</p>
-                      <p className="font-semibold text-primary">${(p.sale_price || 0).toLocaleString('es-CL')}</p>
-                    </div>
-                  </div>
-                  {p.category && <p className="text-[11px] text-muted-foreground mt-2">Categoría: {p.category}</p>}
+          <div className="flex gap-4">
+            {/* Category Sidebar */}
+            <div className="w-52 flex-shrink-0 space-y-1">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Categorías</p>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowNewCategoryInput(!showNewCategoryInput)}>
+                  <FolderPlus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              {showNewCategoryInput && (
+                <div className="flex gap-1 mb-2">
+                  <Input
+                    value={newCategoryInput}
+                    onChange={e => setNewCategoryInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
+                    placeholder="Nueva categoría..."
+                    className="h-7 text-xs bg-secondary border-border"
+                    autoFocus
+                  />
+                  <Button size="icon" className="h-7 w-7 flex-shrink-0" onClick={handleAddCategory}>
+                    <Plus className="h-3 w-3" />
+                  </Button>
                 </div>
+              )}
+
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className={cn(
+                  "w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+                  selectedCategory === 'all' ? "bg-primary text-primary-foreground" : "hover:bg-secondary text-muted-foreground"
+                )}
+              >
+                <span className="flex items-center gap-2"><Package className="h-3.5 w-3.5" /> Todos</span>
+                <Badge variant="secondary" className="text-[10px] h-4">{products.length}</Badge>
+              </button>
+
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+                    selectedCategory === cat ? "bg-primary text-primary-foreground" : "hover:bg-secondary text-muted-foreground"
+                  )}
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    {selectedCategory === cat ? <FolderOpen className="h-3.5 w-3.5 flex-shrink-0" /> : <Folder className="h-3.5 w-3.5 flex-shrink-0" />}
+                    <span className="truncate">{cat}</span>
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] h-4 flex-shrink-0">
+                    {products.filter(p => p.category === cat).length}
+                  </Badge>
+                </button>
               ))}
+
+              {/* Sin categoría */}
+              {products.some(p => !p.category) && (
+                <button
+                  onClick={() => setSelectedCategory('__none__')}
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+                    selectedCategory === '__none__' ? "bg-primary text-primary-foreground" : "hover:bg-secondary text-muted-foreground"
+                  )}
+                >
+                  <span className="flex items-center gap-2"><Folder className="h-3.5 w-3.5" /> Sin categoría</span>
+                  <Badge variant="secondary" className="text-[10px] h-4">{products.filter(p => !p.category).length}</Badge>
+                </button>
+              )}
             </div>
-          )}
+
+            {/* Products Area */}
+            <div className="flex-1 min-w-0">
+              {selectedCategory === 'all' && !search ? (
+                // Grouped view
+                Object.keys(grouped).length === 0 ? (
+                  <EmptyState icon={Package} title="Sin productos" description="Agrega tu primer producto al inventario" />
+                ) : (
+                  <div className="space-y-6">
+                    {Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([cat, prods]) => (
+                      <div key={cat}>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <FolderOpen className="h-4 w-4 text-primary" />
+                            <h2 className="font-semibold text-foreground">{cat}</h2>
+                            <Badge variant="outline" className="text-xs">{prods.length} productos</Badge>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => handleOpenBulk(cat === 'Sin categoría' ? '' : cat)}>
+                              <Upload className="h-3 w-3" /> Carga masiva
+                            </Button>
+                            <Button size="sm" className="gap-1.5 text-xs h-7" onClick={() => {
+                              setEditProduct(null);
+                              setForm(f => ({ ...f, category: cat === 'Sin categoría' ? '' : cat }));
+                              setFormOpen(true);
+                            }}>
+                              <Plus className="h-3 w-3" /> Agregar
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {prods.map(renderProductCard)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : (
+                // Filtered single category view
+                <div>
+                  {selectedCategory !== 'all' && (
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <FolderOpen className="h-4 w-4 text-primary" />
+                        <h2 className="font-semibold">{selectedCategory === '__none__' ? 'Sin categoría' : selectedCategory}</h2>
+                        <Badge variant="outline" className="text-xs">{filtered.length} productos</Badge>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => handleOpenBulk(selectedCategory === '__none__' ? '' : selectedCategory)}>
+                          <Upload className="h-3 w-3" /> Carga masiva
+                        </Button>
+                        <Button size="sm" className="gap-1.5 text-xs h-7" onClick={() => {
+                          setEditProduct(null);
+                          setForm(f => ({ ...f, category: selectedCategory === '__none__' ? '' : selectedCategory }));
+                          setFormOpen(true);
+                        }}>
+                          <Plus className="h-3 w-3" /> Agregar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {filtered.length === 0 ? (
+                    <EmptyState icon={Package} title="Sin productos" description="Agrega productos a esta categoría" />
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {filtered.map(renderProductCard)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="movements" className="mt-4">
@@ -244,9 +417,7 @@ export default function Inventory() {
                         </td>
                         <td className="p-3 font-medium">{m.product_name}</td>
                         <td className="p-3 hidden sm:table-cell">{m.quantity}</td>
-                        <td className="p-3 hidden md:table-cell text-muted-foreground text-xs">
-                          {m.stock_before ?? '—'} → {m.stock_after ?? '—'}
-                        </td>
+                        <td className="p-3 hidden md:table-cell text-muted-foreground text-xs">{m.stock_before ?? '—'} → {m.stock_after ?? '—'}</td>
                         <td className="p-3 hidden md:table-cell text-muted-foreground text-xs">{m.reference || '—'}</td>
                         <td className="p-3 hidden lg:table-cell text-muted-foreground text-xs">{m.user || '—'}</td>
                         <td className="p-3 text-muted-foreground text-xs">{m.date || m.created_date?.split('T')[0]}</td>
@@ -262,39 +433,52 @@ export default function Inventory() {
 
       {/* Product Form Dialog */}
       <Dialog open={formOpen} onOpenChange={v => { setFormOpen(v); if (!v) setEditProduct(null); }}>
-        <DialogContent className="bg-card border-border max-w-lg">
+        <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editProduct ? 'Editar Producto' : 'Nuevo Producto'}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 mt-4">
             <div className="col-span-2">
               <Label>Nombre *</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="bg-secondary border-border" />
+              <Input
+                value={form.name}
+                onChange={e => handleNameChange(e.target.value)}
+                className="bg-secondary border-border"
+                placeholder="Ej: Aceite Motor 20W50"
+              />
             </div>
             <div>
               <Label>Código *</Label>
-              <div className="flex gap-2">
-                <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value }))} className="bg-secondary border-border flex-1" placeholder="Ej: TEC-USB-001" />
-                <Button type="button" variant="outline" size="sm" onClick={generateCode} className="gap-1 text-xs whitespace-nowrap border-primary/40 text-primary hover:bg-primary/10">
-                  <Sparkles className="h-3 w-3" /> Generar
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-1">Se genera automáticamente desde el nombre del producto.</p>
+              <Input
+                value={form.code}
+                onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
+                className="bg-secondary border-border"
+                placeholder="Se genera automáticamente"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Se genera automático al escribir el nombre.</p>
             </div>
             <div>
               <Label>Código de Barras</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={form.barcode}
-                  onChange={e => setForm(f => ({ ...f, barcode: e.target.value }))}
-                  className="bg-secondary border-border font-mono flex-1"
-                  placeholder="EAN, UPC, Code128..."
-                />
-                <Button type="button" variant="outline" size="sm" onClick={generateBarcode} className="gap-1 text-xs whitespace-nowrap border-primary/40 text-primary hover:bg-primary/10">
-                  <Sparkles className="h-3 w-3" /> Generar
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-1">Genera un código interno único si no tienes uno físico.</p>
+              <Input
+                value={form.barcode}
+                onChange={e => setForm(f => ({ ...f, barcode: e.target.value }))}
+                className="bg-secondary border-border font-mono"
+                placeholder="Se genera automáticamente"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Único por producto. Editable si tienes uno físico.</p>
+            </div>
+            <div>
+              <Label>Categoría</Label>
+              <Input
+                value={form.category}
+                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                className="bg-secondary border-border"
+                placeholder="Ej: Aceites, Filtros..."
+                list="categories-list"
+              />
+              <datalist id="categories-list">
+                {categories.map(c => <option key={c} value={c} />)}
+              </datalist>
             </div>
             <div>
               <Label>Stock</Label>
@@ -312,18 +496,11 @@ export default function Inventory() {
               <Label>Precio venta</Label>
               <Input type="number" value={form.sale_price} onChange={e => setForm(f => ({ ...f, sale_price: Number(e.target.value) }))} className="bg-secondary border-border" />
             </div>
-            <div>
-              <Label>Categoría</Label>
-              <Input value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="bg-secondary border-border" />
-            </div>
-            <div>
+            <div className="col-span-2">
               <Label>Descripción</Label>
               <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="bg-secondary border-border" />
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground mt-1">
-            El código de barras debe ser único. Compatible con EAN-8, EAN-13, UPC-A, Code 128, Code 39, QR y más.
-          </p>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => { setFormOpen(false); setEditProduct(null); }}>Cancelar</Button>
             <Button onClick={handleSave} disabled={!form.name || !form.code}>{editProduct ? 'Actualizar' : 'Crear'}</Button>
@@ -345,7 +522,13 @@ export default function Inventory() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <BulkImportModal open={bulkOpen} onOpenChange={setBulkOpen} entityType="products" onSuccess={load} />
+      <BulkImportModal
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        entityType="products"
+        defaultCategory={bulkCategory}
+        onSuccess={load}
+      />
     </div>
   );
 }
