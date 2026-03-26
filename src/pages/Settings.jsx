@@ -129,25 +129,21 @@ export default function Settings() {
                 <Label>Nombre de la Empresa *</Label>
                 <Input value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} className="bg-secondary border-border" />
               </div>
+              <div className="sm:col-span-2">
+                <Label>Representante Legal</Label>
+                <Input value={form.legal_rep} onChange={e => setForm(f => ({ ...f, legal_rep: e.target.value }))} className="bg-secondary border-border" placeholder="Nombre completo del representante" />
+              </div>
               <div>
-                <Label>RUT/NIT</Label>
+                <Label>RUT</Label>
                 <Input value={form.tax_id} onChange={e => setForm(f => ({ ...f, tax_id: e.target.value }))} className="bg-secondary border-border" />
               </div>
               <div>
                 <Label>Teléfono</Label>
                 <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="bg-secondary border-border" />
               </div>
-              <div>
+              <div className="sm:col-span-2">
                 <Label>Email</Label>
                 <Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="bg-secondary border-border" />
-              </div>
-              <div>
-                <Label>Sitio Web</Label>
-                <Input value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} className="bg-secondary border-border" />
-              </div>
-              <div className="sm:col-span-2">
-                <Label>Representante Legal</Label>
-                <Input value={form.legal_rep} onChange={e => setForm(f => ({ ...f, legal_rep: e.target.value }))} className="bg-secondary border-border" placeholder="Nombre completo del representante" />
               </div>
               <div className="sm:col-span-2">
                 <Label>Dirección</Label>

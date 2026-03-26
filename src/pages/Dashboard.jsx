@@ -42,18 +42,12 @@ export default function Dashboard() {
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Empresa</p>
               <h2 className="text-xl font-bold text-foreground leading-tight">{settings.company_name}</h2>
-              {settings.tax_id && <p className="text-xs text-muted-foreground mt-0.5">RUT/NIT: <span className="font-semibold text-foreground">{settings.tax_id}</span></p>}
-              {settings.legal_rep && <p className="text-xs text-muted-foreground">Rep. Legal: <span className="font-semibold text-foreground">{settings.legal_rep}</span></p>}
+              {settings.legal_rep && <p className="text-xs text-muted-foreground mt-0.5">Rep. Legal: <span className="font-semibold text-foreground">{settings.legal_rep}</span></p>}
+              {settings.tax_id && <p className="text-xs text-muted-foreground">RUT: <span className="font-semibold text-foreground">{settings.tax_id}</span></p>}
             </div>
           </div>
-          {(settings.address || settings.phone || settings.email || settings.website) && (
-            <div className="px-5 pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {settings.address && (
-                <div className="flex items-center gap-2 bg-secondary/40 rounded-lg px-3 py-2">
-                  <MapPin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                  <span className="text-xs text-foreground truncate">{settings.address}</span>
-                </div>
-              )}
+          {(settings.phone || settings.email || settings.address) && (
+            <div className="px-5 pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {settings.phone && (
                 <div className="flex items-center gap-2 bg-secondary/40 rounded-lg px-3 py-2">
                   <Phone className="h-3.5 w-3.5 text-primary flex-shrink-0" />
@@ -66,10 +60,10 @@ export default function Dashboard() {
                   <span className="text-xs text-foreground truncate">{settings.email}</span>
                 </div>
               )}
-              {settings.website && (
+              {settings.address && (
                 <div className="flex items-center gap-2 bg-secondary/40 rounded-lg px-3 py-2">
-                  <Globe className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                  <span className="text-xs text-foreground truncate">{settings.website}</span>
+                  <MapPin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <span className="text-xs text-foreground truncate">{settings.address}</span>
                 </div>
               )}
             </div>
