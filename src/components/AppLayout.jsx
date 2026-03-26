@@ -53,16 +53,18 @@ export default function AppLayout() {
           collapsed ? "justify-center" : "gap-3"
         )}>
           {collapsed ? (
-            <div className="h-9 w-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
-              <img src="https://media.base44.com/images/public/69c14942c65b1a037484aa71/945d3b1f0_WhatsAppImage2026-03-23at12111PM.jpeg" alt="MILLAFOR" className="h-8 w-8 object-contain" />
+            <div className="h-9 w-9 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-primary font-black text-xs">FML</span>
             </div>
           ) : (
-            <img src="https://media.base44.com/images/public/69c14942c65b1a037484aa71/945d3b1f0_WhatsAppImage2026-03-23at12111PM.jpeg" alt="MILLAFOR" className="h-10 object-contain" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-widest">Sistema creado por</span>
+              <span className="text-sm font-black text-primary tracking-tight">SOLUCIONES FML</span>
+            </div>
           )}
           <button
             onClick={() => setMobileOpen(false)}
             className="ml-auto lg:hidden text-muted-foreground hover:text-foreground">
-            
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -163,7 +165,10 @@ export default function AppLayout() {
           <button onClick={() => setMobileOpen(true)} className="text-muted-foreground hover:text-foreground">
             <Menu className="h-5 w-5" />
           </button>
-          <img src="https://media.base44.com/images/public/69c14942c65b1a037484aa71/945d3b1f0_WhatsAppImage2026-03-23at12111PM.jpeg" alt="MILLAFOR" className="ml-3 h-7 object-contain" />
+          <div className="ml-3 flex flex-col leading-tight">
+            <span className="text-[8px] font-medium text-muted-foreground uppercase tracking-widest">Sistema creado por</span>
+            <span className="text-xs font-black text-primary tracking-tight">SOLUCIONES FML</span>
+          </div>
         </div>
         <div className="p-4 lg:p-8 max-w-[1600px] mx-auto">
           <Outlet />

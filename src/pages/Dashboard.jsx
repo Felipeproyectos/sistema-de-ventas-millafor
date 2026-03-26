@@ -30,26 +30,48 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {settings && (
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5">
+            <div className="h-16 w-16 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
               {settings.logo_url ? (
-                <img src={settings.logo_url} alt="logo" className="h-12 w-12 object-contain rounded-lg" />
+                <img src={settings.logo_url} alt="logo" className="h-14 w-14 object-contain rounded-lg" />
               ) : (
-                <Wrench className="h-7 w-7 text-primary" />
+                <Wrench className="h-8 w-8 text-primary" />
               )}
             </div>
-            <div className="min-w-0">
-              <h2 className="text-lg font-bold text-foreground leading-tight">{settings.company_name}</h2>
-              {settings.tax_id && <p className="text-xs text-muted-foreground">RUT/NIT: {settings.tax_id}</p>}
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Empresa</p>
+              <h2 className="text-xl font-bold text-foreground leading-tight">{settings.company_name}</h2>
+              {settings.tax_id && <p className="text-xs text-muted-foreground mt-0.5">RUT/NIT: <span className="font-semibold text-foreground">{settings.tax_id}</span></p>}
+              {settings.legal_rep && <p className="text-xs text-muted-foreground">Rep. Legal: <span className="font-semibold text-foreground">{settings.legal_rep}</span></p>}
             </div>
           </div>
           {(settings.address || settings.phone || settings.email || settings.website) && (
-            <div className="mt-3 pt-3 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-1 gap-x-4">
-              {settings.address && <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><MapPin className="h-3 w-3 flex-shrink-0" /><span className="truncate">{settings.address}</span></span>}
-              {settings.phone && <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Phone className="h-3 w-3 flex-shrink-0" /><span className="truncate">{settings.phone}</span></span>}
-              {settings.email && <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Mail className="h-3 w-3 flex-shrink-0" /><span className="truncate">{settings.email}</span></span>}
-              {settings.website && <span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Globe className="h-3 w-3 flex-shrink-0" /><span className="truncate">{settings.website}</span></span>}
+            <div className="px-5 pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {settings.address && (
+                <div className="flex items-center gap-2 bg-secondary/40 rounded-lg px-3 py-2">
+                  <MapPin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <span className="text-xs text-foreground truncate">{settings.address}</span>
+                </div>
+              )}
+              {settings.phone && (
+                <div className="flex items-center gap-2 bg-secondary/40 rounded-lg px-3 py-2">
+                  <Phone className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <span className="text-xs text-foreground truncate">{settings.phone}</span>
+                </div>
+              )}
+              {settings.email && (
+                <div className="flex items-center gap-2 bg-secondary/40 rounded-lg px-3 py-2">
+                  <Mail className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <span className="text-xs text-foreground truncate">{settings.email}</span>
+                </div>
+              )}
+              {settings.website && (
+                <div className="flex items-center gap-2 bg-secondary/40 rounded-lg px-3 py-2">
+                  <Globe className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <span className="text-xs text-foreground truncate">{settings.website}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
