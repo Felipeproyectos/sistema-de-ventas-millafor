@@ -20,6 +20,7 @@ import Quotes from './pages/Quotes';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
 import Warranty from './pages/Warranty';
+import Credit from './pages/Credit';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -57,6 +58,7 @@ const AuthenticatedApp = () => {
         <Route path="/templates" element={<Templates />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/warranty" element={<Warranty />} />
+        <Route path="/credit" element={<Credit />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -1,24 +1,29 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Wrench, Package, ShoppingCart, Users, Monitor, History, FileText, FileCheck, Settings, ChevronLeft, ChevronRight, Menu, X, ClipboardList, UserCog } from 'lucide-react';
+import { LayoutDashboard, Wrench, Package, ShoppingCart, Users, Monitor, History, FileText, FileCheck, Settings, ChevronLeft, ChevronRight, Menu, X, ClipboardList, UserCog, CreditCard } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { cn } from "@/lib/utils";
 import useRealtimeSync from '../hooks/useRealtimeSync';
 
-const navItems = [
+const mainNavItems = [
 { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+{ path: '/sales', label: 'Ventas', icon: ShoppingCart },
 { path: '/repairs', label: 'Reparaciones', icon: Wrench },
 { path: '/quotes', label: 'Cotizaciones', icon: ClipboardList },
 { path: '/inventory', label: 'Inventario', icon: Package },
-{ path: '/sales', label: 'Ventas', icon: ShoppingCart },
-{ path: '/customers', label: 'Clientes', icon: Users },
-{ path: '/machines', label: 'Equipos', icon: Monitor },
-{ path: '/history', label: 'Historial', icon: History },
 { path: '/warranty', label: 'Garantía', icon: FileCheck },
+{ path: '/credit', label: 'Crédito', icon: CreditCard },
+];
+
+const settingsNavItems = [
 { path: '/reports', label: 'Reportes', icon: FileText },
 { path: '/templates', label: 'Plantillas', icon: FileCheck },
 { path: '/users', label: 'Usuarios', icon: UserCog },
-{ path: '/settings', label: 'Configuración', icon: Settings }];
+{ path: '/history', label: 'Historial', icon: History },
+{ path: '/customers', label: 'Clientes', icon: Users },
+{ path: '/machines', label: 'Equipos', icon: Monitor },
+{ path: '/settings', label: 'Configuración', icon: Settings }
+];
 
 
 export default function AppLayout() {
@@ -69,28 +74,51 @@ export default function AppLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                  collapsed && "justify-center px-0",
-                  isActive ?
-                  "bg-primary/15 text-primary" :
-                  "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
-                title={collapsed ? item.label : undefined}>
-                
-                <item.icon className={cn("h-[18px] w-[18px] flex-shrink-0", isActive && "text-primary")} />
-                {!collapsed && <span>{item.label}</span>}
-              </Link>);
-
-          })}
+        <nav className="flex-1 py-4 px-3 overflow-y-auto">
+          <div className="space-y-1">
+            {mainNavItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    collapsed && "justify-center px-0",
+                    isActive ?
+                    "bg-primary/15 text-primary" :
+                    "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}
+                  title={collapsed ? item.label : undefined}>
+                  <item.icon className={cn("h-[18px] w-[18px] flex-shrink-0", isActive && "text-primary")} />
+                  {!collapsed && <span>{item.label}</span>}
+                </Link>);
+            })}
+          </div>
+          {!collapsed && <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mt-4 mb-1">Configuración</p>}
+          {collapsed && <div className="my-2 border-t border-border" />}
+          <div className="space-y-1">
+            {settingsNavItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                    collapsed && "justify-center px-0",
+                    isActive ?
+                    "bg-primary/15 text-primary" :
+                    "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  )}
+                  title={collapsed ? item.label : undefined}>
+                  <item.icon className={cn("h-[18px] w-[18px] flex-shrink-0", isActive && "text-primary")} />
+                  {!collapsed && <span>{item.label}</span>}
+                </Link>);
+            })}
+          </div>
         </nav>
 
         {/* User info */}
