@@ -15,17 +15,19 @@ import { toast } from 'sonner';
 const SIG_KEY_RESPONSIBLE = 'warranty_sig_responsible';
 const SIG_KEY_CLIENT      = 'warranty_sig_client';
 
-const genOrderNumber = () => {
+const genOrderNumber = (type = 'puesta_en_marcha') => {
   const now = new Date();
   const yy  = String(now.getFullYear()).slice(2);
   const mm  = String(now.getMonth() + 1).padStart(2, '0');
   const dd  = String(now.getDate()).padStart(2, '0');
   const seq = String(now.getHours() * 60 + now.getMinutes()).padStart(4, '0');
-  return `OPM-${yy}${mm}${dd}-${seq}`;
+  const prefix = type === 'garantia' ? 'OG' : 'OPM';
+  return `${prefix}-${yy}${mm}${dd}-${seq}`;
 };
 
 const defaultForm = () => ({
-  order_number: genOrderNumber(),
+  doc_type: 'puesta_en_marcha',
+  order_number: genOrderNumber('puesta_en_marcha'),
   date: new Date().toISOString().split('T')[0],
   customer_name: '',
   customer_phone: '',
@@ -287,7 +289,8 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
   doc.setFillColor(235, 240, 252); doc.rect(ml, y, W, 13, 'F');
   doc.setFillColor(30, 70, 140);   doc.rect(ml, y, 4, 13, 'F');
   doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(8, 18, 40);
-  doc.text('ORDEN DE PUESTA EN MARCHA', ml + 9, y + 9);
+  const docTitle = form.doc_type === 'garantia' ? 'ORDEN DE GARANTÍA' : 'ORDEN DE PUESTA EN MARCHA';
+  doc.text(docTitle, ml + 9, y + 9);
   doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(30, 70, 140);
   doc.text(`N° ${form.order_number || '—'}`, mr, y + 5.5, { align: 'right' });
   doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(80, 100, 140);
@@ -328,7 +331,8 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
   y += clientRows.length * 8 + 6;
 
   // ── OBSERVATIONS ──
-  y = drawSectionTitle('Observaciones de Puesta en Marcha', y);
+  const obsTitle = form.doc_type === 'garantia' ? 'Observaciones de Garantía' : 'Observaciones de Puesta en Marcha';
+  y = drawSectionTitle(obsTitle, y);
   const drawTextBox = (text, yy) => {
     if (!text) return yy;
     const lines = doc.splitTextToSize(text, W - 10);
@@ -392,7 +396,8 @@ async function buildPdf(form, settings, responsibleSigData, clientSigData) {
     doc.text(name || '', x + sigW / 2, sy + 30, { align: 'center' });
   };
 
-  drawSigBox(resSig, 'Responsable de la Puesta en Marcha', form.responsible_name, ml, sigY);
+  const resSigLabel = form.doc_type === 'garantia' ? 'Responsable de la Garantía' : 'Responsable de la Puesta en Marcha';
+  drawSigBox(resSig, resSigLabel, form.responsible_name, ml, sigY);
   drawSigBox(cliSig, 'Firma del Cliente / Representante', form.customer_name, ml + sigW + 14, sigY);
 
   // ── AUTHORIZED SERVICE BADGE — fixed position above footer ──
@@ -443,7 +448,12 @@ export default function Warranty() {
     });
   }, []);
 
-  const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
+  const set = (field, val) => setForm(f => {
+    if (field === 'doc_type') {
+      return { ...f, doc_type: val, order_number: genOrderNumber(val) };
+    }
+    return { ...f, [field]: val };
+  });
 
   const handleGeneratePdf = async () => {
     if (!form.customer_name) { toast.error('Ingresa el nombre del cliente'); return; }
@@ -500,6 +510,36 @@ export default function Warranty() {
             <div className="space-y-4">
               <div className="bg-card border border-border rounded-xl p-5">
                 <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">Datos de la Orden</h3>
+
+                {/* Document type selector */}
+                <div className="mb-4">
+                  <Label className="text-xs font-medium">Tipo de Documento</Label>
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => set('doc_type', 'puesta_en_marcha')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                        form.doc_type === 'puesta_en_marcha'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-secondary text-muted-foreground border-border hover:bg-secondary/80'
+                      }`}
+                    >
+                      Orden de Puesta en Marcha
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => set('doc_type', 'garantia')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                        form.doc_type === 'garantia'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-secondary text-muted-foreground border-border hover:bg-secondary/80'
+                      }`}
+                    >
+                      Orden de Garantía
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   {formFields.map(f => (
                     <div key={f.key} className={f.full ? 'col-span-2' : ''}>
