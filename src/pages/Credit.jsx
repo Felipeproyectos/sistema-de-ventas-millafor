@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, CreditCard, AlertTriangle, CheckCircle, Clock, Search, X } from 'lucide-react';
+import { Plus, CreditCard, AlertTriangle, CheckCircle, Clock, Search, X, FileText, Loader2 } from 'lucide-react';
+import PdfPreviewModal from '../components/PdfPreviewModal';
+import { generateCreditReportPdf } from '../lib/creditReportPdf';
 import PageHeader from '../components/PageHeader';
 import CreditForm from '../components/credit/CreditForm';
 import CreditCard2 from '../components/credit/CreditCard';
@@ -13,6 +15,13 @@ export default function Credit() {
   const [editingCredit, setEditingCredit] = useState(null);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [pdfPreview, setPdfPreview] = useState({ open: false, url: null });
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [settings, setSettings] = useState(null);
+
+  useState(() => {
+    base44.entities.CompanySettings.list().then(s => { if (s.length) setSettings(s[0]); });
+  }, []);
 
   const { data: credits = [], isLoading } = useQuery({
     queryKey: ['credits'],
@@ -57,6 +66,13 @@ export default function Credit() {
     queryClient.invalidateQueries({ queryKey: ['credits'] });
   };
 
+  const handleGenerateReport = async () => {
+    setGeneratingPdf(true);
+    const url = await generateCreditReportPdf(enriched, settings);
+    setPdfPreview({ open: true, url });
+    setGeneratingPdf(false);
+  };
+
   const handleEdit = (credit) => {
     setEditingCredit(credit);
     setShowForm(true);
@@ -69,15 +85,22 @@ export default function Credit() {
       <PageHeader
         title="Créditos"
         description="Gestión de ventas y servicios a crédito"
-        action={
-          <button
-            onClick={() => { setEditingCredit(null); setShowForm(true); }}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="h-4 w-4" /> Nuevo Crédito
-          </button>
-        }
-      />
+      >
+        <button
+          onClick={handleGenerateReport}
+          disabled={generatingPdf || credits.length === 0}
+          className="flex items-center gap-2 bg-secondary text-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors border border-border disabled:opacity-50"
+        >
+          {generatingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+          Informe PDF
+        </button>
+        <button
+          onClick={() => { setEditingCredit(null); setShowForm(true); }}
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+        >
+          <Plus className="h-4 w-4" /> Nuevo Crédito
+        </button>
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -144,6 +167,13 @@ export default function Credit() {
       )}
 
       {/* Form Modal */}
+      <PdfPreviewModal
+        open={pdfPreview.open}
+        onOpenChange={open => setPdfPreview(p => ({ ...p, open }))}
+        blobUrl={pdfPreview.url}
+        filename={`informe-creditos-${new Date().toLocaleDateString('es-CL').replace(/\//g, '-')}.pdf`}
+      />
+
       {showForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">

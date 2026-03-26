@@ -14,9 +14,12 @@ import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 
 const emptyItem = () => ({ product_id: '', product_name: '', quantity: 1, unit_price: 0, purchase_price: 0 });
 
+const today = new Date().toISOString().split('T')[0];
+
 export default function SaleFormDialog({ open, onOpenChange, customers, products, onSaved }) {
   const [form, setForm] = useState({
-    customer_id: '', date: new Date().toISOString().split('T')[0], attended_by: '', items: [emptyItem()], discount: 0, abono: 0, notes: ''
+    customer_id: '', date: today, attended_by: '', items: [emptyItem()], discount: 0, abono: 0, notes: '',
+    payment_type: 'contado', credit_due_date: ''
   });
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState('select');
@@ -28,9 +31,9 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
   useEffect(() => {
     if (open) {
       setForm({
-        customer_id: '', date: new Date().toISOString().split('T')[0], attended_by: '', items: [emptyItem()], discount: 0, abono: 0, notes: ''
+        customer_id: '', date: today, attended_by: '', items: [emptyItem()], discount: 0, abono: 0, notes: '',
+        payment_type: 'contado', credit_due_date: ''
       });
-      setNewCustomerData({ name: '', phone: '', email: '', address: '' });
       setTab('select');
       setScanFeedback({ last: '', error: '' });
       setScannerEnabled(true);
@@ -153,16 +156,35 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
       }
     }
 
+    const orderNumber = `VT-${Date.now().toString().slice(-6)}`;
+    const isCredit = form.payment_type === 'credito';
+
     await base44.entities.SaleOrder.create({
       ...form,
       items: validItems,
       customer_name: customer?.name || '',
-      order_number: `VT-${Date.now().toString().slice(-6)}`,
+      order_number: orderNumber,
       subtotal,
       total,
       abono: Number(form.abono) || 0,
-      status: 'completada',
+      status: isCredit ? 'pendiente' : 'completada',
     });
+
+    // If credit sale, create CreditSale record
+    if (isCredit) {
+      await base44.entities.CreditSale.create({
+        client_name: customer?.name || '',
+        client_phone: customer?.phone || '',
+        client_email: customer?.email || '',
+        service_date: form.date,
+        description: validItems.map(i => `${i.quantity}x ${i.product_name}`).join(', '),
+        total_amount: total,
+        amount_paid: Number(form.abono) || 0,
+        due_date: form.credit_due_date || form.date,
+        status: 'pendiente',
+        notes: `Venta ${orderNumber}. ${form.notes || ''}`.trim(),
+      });
+    }
 
     toast.success('Venta registrada correctamente');
     setSaving(false);
@@ -276,13 +298,36 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
           </div>
         </div>
 
+        {/* Payment type */}
+        <div className="mt-4">
+          <Label className="text-sm font-semibold">Forma de Pago</Label>
+          <div className="flex gap-2 mt-1">
+            <button type="button" onClick={() => setForm(f => ({ ...f, payment_type: 'contado' }))}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                form.payment_type === 'contado' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary text-muted-foreground border-border hover:bg-secondary/80'
+              }`}>Al Contado</button>
+            <button type="button" onClick={() => setForm(f => ({ ...f, payment_type: 'credito' }))}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                form.payment_type === 'credito' ? 'bg-yellow-600 text-white border-yellow-600' : 'bg-secondary text-muted-foreground border-border hover:bg-secondary/80'
+              }`}>A Crédito</button>
+          </div>
+          {form.payment_type === 'credito' && (
+            <div className="mt-2">
+              <Label className="text-xs">Fecha de Vencimiento del Crédito *</Label>
+              <Input type="date" value={form.credit_due_date} onChange={e => setForm(f => ({ ...f, credit_due_date: e.target.value }))}
+                className="bg-secondary border-border mt-1" />
+              <p className="text-xs text-yellow-600 mt-1">⚠ Esta venta se registrará en el módulo de Créditos y no contará como ganancia hasta ser pagada.</p>
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-3 gap-4 mt-4">
           <div>
             <Label>Descuento</Label>
             <Input type="number" value={form.discount} onChange={e => setForm(f => ({ ...f, discount: Number(e.target.value) }))} className="bg-secondary border-border" />
           </div>
           <div>
-            <Label>Abono</Label>
+            <Label>{form.payment_type === 'credito' ? 'Abono inicial' : 'Abono'}</Label>
             <Input type="number" value={form.abono} onChange={e => setForm(f => ({ ...f, abono: Number(e.target.value) }))} className="bg-secondary border-border" />
           </div>
           <div className="bg-primary/10 rounded-lg p-3 text-center flex flex-col justify-center">
