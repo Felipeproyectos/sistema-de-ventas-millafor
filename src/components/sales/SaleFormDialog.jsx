@@ -30,6 +30,9 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
 
   useEffect(() => {
     if (open) {
+      base44.auth.me().then(u => {
+        setForm(f => ({ ...f, attended_by: u?.full_name || '' }));
+      }).catch(() => {});
       setForm({
         customer_id: '', date: today, attended_by: '', items: [emptyItem()], discount: 0, abono: 0, notes: '',
         payment_type: 'contado', credit_due_date: ''
@@ -37,7 +40,7 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
       setTab('select');
       setScanFeedback({ last: '', error: '' });
       setScannerEnabled(true);
-      setScannerActive(true); // Se activa al abrir el formulario — el usuario lo activa manualmente
+      setScannerActive(true);
     } else {
       setScannerEnabled(false);
       setScannerActive(false);

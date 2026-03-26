@@ -30,6 +30,9 @@ export default function QuoteFormDialog({ open, onOpenChange, customers, product
 
   useEffect(() => {
     if (open) {
+      base44.auth.me().then(u => {
+        setForm(f => ({ ...f, attended_by: u?.full_name || '' }));
+      }).catch(() => {});
       setForm({
         date: new Date().toISOString().split('T')[0],
         expiry_date: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
