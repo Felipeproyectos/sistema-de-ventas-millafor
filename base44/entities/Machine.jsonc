@@ -1,0 +1,76 @@
+{
+  "name": "Machine",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Nombre del equipo"
+    },
+    "brand": {
+      "type": "string",
+      "title": "Marca"
+    },
+    "model": {
+      "type": "string",
+      "title": "Modelo"
+    },
+    "type": {
+      "type": "string",
+      "title": "Tipo"
+    },
+    "serial_number": {
+      "type": "string",
+      "title": "N\u00famero de serie"
+    },
+    "customer_id": {
+      "type": "string",
+      "title": "Cliente"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notas"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
+      }
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
