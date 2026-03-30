@@ -1,0 +1,32 @@
+{
+  "name": "AccessRequest",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "title": "Nombre completo"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "message": {
+      "type": "string",
+      "title": "Mensaje"
+    },
+    "status": {
+      "type": "string",
+      "title": "Estado",
+      "enum": [
+        "pendiente",
+        "aprobado",
+        "rechazado"
+      ],
+      "default": "pendiente"
+    }
+  },
+  "required": [
+    "full_name",
+    "email"
+  ]
+}

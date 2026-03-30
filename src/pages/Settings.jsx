@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Settings as SettingsIcon, Upload, Save, FileText, FileCheck, UserCog, History, Users, Monitor } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Settings as SettingsIcon, Upload, Save, FileText, FileCheck, UserCog, History, Users, Monitor, ShieldCheck } from 'lucide-react';
+import AccessRequests from '../components/settings/AccessRequests';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +17,7 @@ import Machines from './Machines';
 
 const tabs = [
   { id: 'general', label: 'General', icon: SettingsIcon },
+  { id: 'access', label: 'Accesos', icon: ShieldCheck },
   { id: 'reports', label: 'Reportes', icon: FileText },
   { id: 'templates', label: 'Plantillas', icon: FileCheck },
   { id: 'users', label: 'Usuarios', icon: UserCog },
@@ -25,6 +28,11 @@ const tabs = [
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('general');
+  const { data: pendingRequests = [] } = useQuery({
+    queryKey: ['access-requests'],
+    queryFn: () => base44.entities.AccessRequest.filter({ status: 'pendiente' }),
+    refetchInterval: 30000,
+  });
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({
     company_name: '', logo_url: '', address: '', phone: '',
@@ -87,7 +95,7 @@ export default function Settings() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === tab.id
                 ? 'bg-card text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
@@ -95,6 +103,11 @@ export default function Settings() {
           >
             <tab.icon className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{tab.label}</span>
+            {tab.id === 'access' && pendingRequests.length > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                {pendingRequests.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -164,6 +177,7 @@ export default function Settings() {
           </div>
         </div>
       )}
+      {activeTab === 'access' && <AccessRequests />}
       {activeTab === 'reports' && <Reports />}
       {activeTab === 'templates' && <Templates />}
       {activeTab === 'users' && <UsersPage />}
