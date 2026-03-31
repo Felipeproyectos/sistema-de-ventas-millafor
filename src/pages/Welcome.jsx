@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
@@ -7,8 +8,12 @@ const DEFAULT_BG = 'https://images.unsplash.com/photo-1497366216548-37526070297c
 
 export default function Welcome() {
   const [settings, setSettings] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    base44.auth.isAuthenticated().then(authed => {
+      if (authed) navigate('/', { replace: true });
+    });
     base44.entities.CompanySettings.list().then(data => {
       if (data && data.length > 0) setSettings(data[0]);
     });
