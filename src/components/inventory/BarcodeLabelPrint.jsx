@@ -52,29 +52,16 @@ export default function BarcodeLabelPrint({ product }) {
         <title>Etiquetas - ${product.name}</title>
         <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
         <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; }
-          .label {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 8px;
-            width: 58mm;
-            page-break-after: always;
-          }
-          .label:last-child { page-break-after: auto; }
-          .product-name {
-            font-size: 9px;
-            font-weight: bold;
-            text-align: center;
-            max-width: 56mm;
-            word-break: break-word;
-            margin-bottom: 3px;
-            text-transform: uppercase;
-          }
-          .barcode { max-width: 56mm; }
-          .code-text { font-size: 8px; text-align: center; margin-top: 2px; font-family: monospace; }
-          .divider { border-top: 1px dashed #000; width: 100%; margin: 4px 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; }
+        .label {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 6px;
+          width: 58mm;
+          border: 1px dashed #ccc;
+        }
         </style>
       </head>
       <body>
