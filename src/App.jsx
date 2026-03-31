@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 import AppLayout from './components/AppLayout';
+import PreviewAccess from './pages/PreviewAccess';
 import Dashboard from './pages/Dashboard';
 import Repairs from './pages/Repairs';
 import Inventory from './pages/Inventory';
@@ -54,6 +55,7 @@ const AuthenticatedApp = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="/credit" element={<Credit />} />
       </Route>
+      <Route path="/preview-access" element={<PreviewAccess />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
