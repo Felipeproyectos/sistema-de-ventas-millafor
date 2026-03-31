@@ -57,7 +57,7 @@ export default function BarcodeLabelPrint({ product }) {
         ${product.category ? `<div class="code-text">${product.category}</div>` : ''}
         <div class="divider"></div>
         <svg id="barcode"></svg>
-        <div class="code-text">${product.barcode}</div>
+
         <div class="divider"></div>
         <div class="price">$${(product.sale_price || 0).toLocaleString('es-CL')}</div>
         <script>
