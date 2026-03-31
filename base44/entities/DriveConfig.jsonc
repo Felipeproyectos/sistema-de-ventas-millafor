@@ -1,0 +1,42 @@
+{
+  "name": "DriveConfig",
+  "type": "object",
+  "properties": {
+    "root_folder_id": {
+      "type": "string",
+      "title": "ID carpeta ra\u00edz"
+    },
+    "reparaciones_folder_id": {
+      "type": "string",
+      "title": "ID carpeta Reparaciones"
+    },
+    "cotizaciones_folder_id": {
+      "type": "string",
+      "title": "ID carpeta Cotizaciones"
+    },
+    "ventas_folder_id": {
+      "type": "string",
+      "title": "ID carpeta Ventas"
+    },
+    "puesta_en_marcha_folder_id": {
+      "type": "string",
+      "title": "ID carpeta Puesta en Marcha"
+    },
+    "garantia_folder_id": {
+      "type": "string",
+      "title": "ID carpeta Garant\u00eda"
+    },
+    "credito_folder_id": {
+      "type": "string",
+      "title": "ID carpeta Cr\u00e9dito"
+    },
+    "month_folders": {
+      "type": "object",
+      "title": "Mapa de subcarpetas mensuales",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  },
+  "required": []
+}

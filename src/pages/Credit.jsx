@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Plus, CreditCard, AlertTriangle, CheckCircle, Clock, Search, X, FileText, Loader2 } from 'lucide-react';
+import { uploadDocToDrive } from '../lib/driveUpload';
 import PdfPreviewModal from '../components/PdfPreviewModal';
 import { generateCreditReportPdf } from '../lib/creditReportPdf';
 import PageHeader from '../components/PageHeader';
 import CreditForm from '../components/credit/CreditForm';
 import CreditCard2 from '../components/credit/CreditCard';
 import { differenceInDays, parseISO } from 'date-fns';
+import { toast } from 'sonner';
 
 export default function Credit() {
   const queryClient = useQueryClient();
@@ -68,9 +70,14 @@ export default function Credit() {
 
   const handleGenerateReport = async () => {
     setGeneratingPdf(true);
-    const url = await generateCreditReportPdf(enriched, settings);
+    const { url, doc } = await generateCreditReportPdf(enriched, settings);
     setPdfPreview({ open: true, url });
     setGeneratingPdf(false);
+    const today = new Date().toISOString().split('T')[0];
+    const filename = `informe-creditos-${today}.pdf`;
+    uploadDocToDrive(doc, filename, 'credito')
+      .then(() => toast.success('Informe guardado en Google Drive > Crédito'))
+      .catch(() => {});
   };
 
   const handleEdit = (credit) => {

@@ -189,5 +189,5 @@ export async function generateCreditReportPdf(credits, settings) {
   doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(100, 135, 195);
   doc.text('Informe generado digitalmente por SOLUCIONES TECNOLOGICAS FML', pw / 2, footerY + 13, { align: 'center' });
 
-  return getPdfBlobUrl(doc);
+  return { url: getPdfBlobUrl(doc), doc };
 }

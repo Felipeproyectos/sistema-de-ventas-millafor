@@ -463,8 +463,10 @@ export default function Warranty() {
       await base44.entities.WarrantyOrder.create({ ...form });
       const filename = `orden-${form.order_number || 'nueva'}.pdf`;
       setPdfPreview({ open: true, url: getPdfBlobUrl(doc), filename });
-      uploadDocToDrive(doc, filename, 'puesta_en_marcha')
-        .then(() => toast.success('PDF guardado en Google Drive > Puesta en Marcha'))
+      const driveCategory = form.doc_type === 'garantia' ? 'garantia' : 'puesta_en_marcha';
+      const driveLabel = form.doc_type === 'garantia' ? 'Garantía' : 'Puesta en Marcha';
+      uploadDocToDrive(doc, filename, driveCategory)
+        .then(() => toast.success(`PDF guardado en Google Drive > ${driveLabel}`))
         .catch(() => {});
       toast.success('Orden generada y guardada en historial');
     } catch (err) {
