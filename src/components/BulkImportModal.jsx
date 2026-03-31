@@ -141,7 +141,7 @@ function downloadTemplate(config) {
   const ws = XLSX.utils.aoa_to_sheet([headers, example]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
-  XLSX.writeFile(wb, `plantilla_${config.entity.toLowerCase()}.xlsx`);
+  XLSX.writeFile(wb, `plantilla_${config.entity.toLowerCase()}.xlsx`, { bookType: 'xlsx' });
 }
 
 export default function BulkImportModal({ open, onOpenChange, entityType, customers = [], onSuccess, defaultCategory = '' }) {

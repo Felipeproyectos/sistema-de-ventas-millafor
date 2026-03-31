@@ -18,7 +18,7 @@ export default function Welcome() {
     base44.entities.CompanySettings.list().then(data => {
       if (data && data.length > 0) setSettings(data[0]);
       setLoadingSettings(false);
-    });
+    }).catch(() => setLoadingSettings(false));
   }, []);
 
   const bgImage = settings?.bg_image_url || DEFAULT_BG;
