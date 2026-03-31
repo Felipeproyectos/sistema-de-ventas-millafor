@@ -35,9 +35,10 @@ export default function Settings() {
   });
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({
-    company_name: '', logo_url: '', address: '', phone: '',
+    company_name: '', logo_url: '', bg_image_url: '', address: '', phone: '',
     email: '', website: '', tax_id: '', legal_rep: '', accent_color: '#3b82f6'
   });
+  const [uploadingBg, setUploadingBg] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -49,6 +50,7 @@ export default function Settings() {
         setForm({
           company_name: s[0].company_name || '',
           logo_url: s[0].logo_url || '',
+          bg_image_url: s[0].bg_image_url || '',
           address: s[0].address || '',
           phone: s[0].phone || '',
           email: s[0].email || '',
@@ -70,6 +72,16 @@ export default function Settings() {
     setForm(f => ({ ...f, logo_url: file_url }));
     setUploading(false);
     toast.success('Logo subido');
+  };
+
+  const handleBgUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingBg(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    setForm(f => ({ ...f, bg_image_url: file_url }));
+    setUploadingBg(false);
+    toast.success('Imagen de fondo subida');
   };
 
   const handleSave = async () => {
@@ -137,6 +149,33 @@ export default function Settings() {
                 </div>
               </div>
             </div>
+
+            <div>
+              <Label className="text-sm font-semibold mb-3 block">Imagen de Fondo (pantalla de acceso)</Label>
+              <div className="flex items-center gap-4">
+                {form.bg_image_url ? (
+                  <img src={form.bg_image_url} alt="Fondo" className="h-16 w-24 rounded-xl object-cover border border-border" />
+                ) : (
+                  <div className="h-16 w-24 rounded-xl bg-secondary flex items-center justify-center">
+                    <Upload className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <label className="cursor-pointer">
+                    <input type="file" accept="image/*" onChange={handleBgUpload} className="hidden" />
+                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg text-sm font-medium transition-colors">
+                      <Upload className="h-4 w-4" />
+                      {uploadingBg ? 'Subiendo...' : 'Subir Imagen'}
+                    </span>
+                  </label>
+                  {form.bg_image_url && (
+                    <button onClick={() => setForm(f => ({ ...f, bg_image_url: '' }))} className="text-xs text-destructive hover:underline block">Eliminar</button>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Esta imagen se muestra como fondo en la pantalla de acceso restringido.</p>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <Label>Nombre de la Empresa *</Label>

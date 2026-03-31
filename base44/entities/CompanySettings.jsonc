@@ -1,0 +1,50 @@
+{
+  "name": "CompanySettings",
+  "type": "object",
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "title": "Nombre de la empresa"
+    },
+    "logo_url": {
+      "type": "string",
+      "title": "Logo URL"
+    },
+    "bg_image_url": {
+      "type": "string",
+      "title": "Imagen de fondo (URL)"
+    },
+    "address": {
+      "type": "string",
+      "title": "Direcci\u00f3n"
+    },
+    "phone": {
+      "type": "string",
+      "title": "Tel\u00e9fono"
+    },
+    "email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "website": {
+      "type": "string",
+      "title": "Sitio web"
+    },
+    "tax_id": {
+      "type": "string",
+      "title": "RUT/NIT"
+    },
+    "legal_rep": {
+      "type": "string",
+      "title": "Representante Legal"
+    },
+    "accent_color": {
+      "type": "string",
+      "title": "Color de acento",
+      "default": "#3b82f6"
+    }
+  },
+  "required": [
+    "company_name"
+  ]
+}
