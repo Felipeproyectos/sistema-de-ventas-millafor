@@ -24,8 +24,8 @@ export default function BarcodeLabelPrint({ product }) {
       if (svgRef.current) {
         window.JsBarcode(svgRef.current, product.barcode || product.code, {
           format: 'CODE128',
-          width: 1.5,
-          height: 40,
+          width: 1.2,
+          height: 30,
           displayValue: false,
           margin: 2,
         });
@@ -58,10 +58,22 @@ export default function BarcodeLabelPrint({ product }) {
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 6px;
-          width: 58mm;
+          padding: 4px;
+          width: 50mm;
           border: 1px dashed #ccc;
         }
+        .product-name {
+          font-size: 7px;
+          font-weight: bold;
+          text-align: center;
+          max-width: 48mm;
+          word-break: break-word;
+          margin-bottom: 2px;
+          text-transform: uppercase;
+        }
+        .code-text { font-size: 6px; text-align: center; margin-bottom: 2px; font-family: monospace; }
+        .barcode { max-width: 48mm; }
+        .divider { border-top: 1px dashed #000; width: 100%; margin: 2px 0; }
         </style>
       </head>
       <body>
@@ -70,7 +82,7 @@ export default function BarcodeLabelPrint({ product }) {
           window.onload = function() {
             document.querySelectorAll('.barcode').forEach(function(el) {
               JsBarcode(el, "${product.barcode || product.code}", {
-                format: "CODE128", width: 1.5, height: 40, displayValue: false, margin: 2
+                format: "CODE128", width: 1.2, height: 28, displayValue: false, margin: 1
               });
             });
             setTimeout(function() { window.print(); window.close(); }, 500);
@@ -100,11 +112,11 @@ export default function BarcodeLabelPrint({ product }) {
             <DialogTitle>Vista previa de etiqueta</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center py-4 bg-white rounded-lg border border-border p-4">
-            <p className="text-xs font-bold text-black uppercase text-center mb-1 max-w-[56mm] break-words">
+            <p className="text-[9px] font-bold text-black uppercase text-center mb-0.5 max-w-[56mm] break-words">
               {product.name}
             </p>
             {product.category && (
-              <p className="text-[10px] text-gray-500 mb-1">{product.category}</p>
+              <p className="text-[8px] text-gray-500 mb-0.5">{product.category}</p>
             )}
             <hr className="w-full border-dashed border-black my-1" />
             <svg ref={svgRef} className="max-w-[56mm]" />
