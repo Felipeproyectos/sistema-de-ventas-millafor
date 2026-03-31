@@ -8,28 +8,20 @@ const DEFAULT_BG = 'https://images.unsplash.com/photo-1497366216548-37526070297c
 
 export default function Welcome() {
   const [settings, setSettings] = useState(null);
-  const [loadingSettings, setLoadingSettings] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     base44.auth.isAuthenticated().then(authed => {
       if (authed) navigate('/', { replace: true });
-    });
+    }).catch(() => {});
     base44.entities.CompanySettings.list().then(data => {
       if (data && data.length > 0) setSettings(data[0]);
-      setLoadingSettings(false);
-    }).catch(() => setLoadingSettings(false));
+    }).catch(() => {});
   }, []);
 
   const bgImage = settings?.bg_image_url || DEFAULT_BG;
   const logo = settings?.logo_url;
   const companyName = settings?.company_name || 'Sistema de Gestión';
-
-  if (loadingSettings) return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-    </div>
-  );
 
   return (
     <div
