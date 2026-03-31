@@ -59,7 +59,6 @@ export default function BarcodeLabelPrint({ product }) {
         <svg id="barcode"></svg>
 
         <div class="divider"></div>
-        <div class="price">$${(product.sale_price || 0).toLocaleString('es-CL')}</div>
         <script>
           window.onload = function() {
             JsBarcode("#barcode", "${product.barcode}", {
