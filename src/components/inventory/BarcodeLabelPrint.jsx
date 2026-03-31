@@ -3,34 +3,33 @@ import { Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
+function loadJsBarcode() {
+  return new Promise((resolve) => {
+    if (window.JsBarcode) return resolve();
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js';
+    s.onload = resolve;
+    document.head.appendChild(s);
+  });
+}
+
 export default function BarcodeLabelPrint({ product }) {
   const [open, setOpen] = useState(false);
   const svgRef = useRef(null);
 
   useEffect(() => {
-    if (!open || !svgRef.current) return;
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js';
-    script.onload = () => {
-      window.JsBarcode(svgRef.current, product.barcode || product.code, {
-        format: 'CODE128',
-        width: 1.5,
-        height: 40,
-        displayValue: false,
-        margin: 2,
-      });
-    };
-    if (window.JsBarcode) {
-      window.JsBarcode(svgRef.current, product.barcode || product.code, {
-        format: 'CODE128',
-        width: 1.5,
-        height: 40,
-        displayValue: false,
-        margin: 2,
-      });
-    } else {
-      document.head.appendChild(script);
-    }
+    if (!open) return;
+    loadJsBarcode().then(() => {
+      if (svgRef.current) {
+        window.JsBarcode(svgRef.current, product.barcode || product.code, {
+          format: 'CODE128',
+          width: 1.5,
+          height: 40,
+          displayValue: false,
+          margin: 2,
+        });
+      }
+    });
   }, [open, product]);
 
   const handlePrint = () => {
