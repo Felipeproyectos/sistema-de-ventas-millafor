@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 import AppLayout from './components/AppLayout';
+import Welcome from './pages/Welcome';
 import PreviewAccess from './pages/PreviewAccess';
 import Dashboard from './pages/Dashboard';
 import Repairs from './pages/Repairs';
@@ -66,7 +67,10 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
-          <AuthenticatedApp />
+          <Routes>
+            <Route path="/welcome" element={<Welcome />} />
+            <Route path="*" element={<AuthenticatedApp />} />
+          </Routes>
         </Router>
         <Toaster />
       </QueryClientProvider>
