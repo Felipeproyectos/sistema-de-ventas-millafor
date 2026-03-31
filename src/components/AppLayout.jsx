@@ -133,7 +133,7 @@ export default function AppLayout() {
                   <p className="text-[10px] text-muted-foreground truncate capitalize">{user.role || 'usuario'}</p>
                 </div>
                 <button
-                  onClick={() => base44.auth.logout('/welcome')}
+                  onClick={() => base44.auth.logout(window.location.origin + '/welcome')}
                   className="text-muted-foreground hover:text-destructive transition-colors"
                   title="Cerrar sesión"
                 >
