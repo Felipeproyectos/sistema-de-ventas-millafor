@@ -8,6 +8,7 @@ const DEFAULT_BG = 'https://images.unsplash.com/photo-1497366216548-37526070297c
 
 export default function Welcome() {
   const [settings, setSettings] = useState(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,12 +17,19 @@ export default function Welcome() {
     });
     base44.entities.CompanySettings.list().then(data => {
       if (data && data.length > 0) setSettings(data[0]);
+      setLoadingSettings(false);
     });
   }, []);
 
   const bgImage = settings?.bg_image_url || DEFAULT_BG;
   const logo = settings?.logo_url;
   const companyName = settings?.company_name || 'Sistema de Gestión';
+
+  if (loadingSettings) return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <div
@@ -49,7 +57,7 @@ export default function Welcome() {
             </div>
           )}
           <h1 className="text-3xl font-bold text-white tracking-tight">{companyName}</h1>
-          <p className="text-white/50 text-sm mt-2">Sistema de Gestión Empresarial</p>
+          <p className="text-white/50 text-sm mt-2">Tu máquina en las mejores manos</p>
         </div>
 
         <div
