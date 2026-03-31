@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { base44 } from '@/api/base44Client';
 import { FileCheck, Plus, Pencil, Trash2, Download, Package, Users, Monitor, FileSpreadsheet } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -73,14 +74,18 @@ const IMPORT_TEMPLATES = [
 function downloadBulkTemplate(tpl) {
   const headers = tpl.columns.map(c => c.key);
   const example = tpl.columns.map(c => c.example);
-  const emptyRows = Array(9).fill(tpl.columns.map(() => '').join('\t'));
-  const rows = [headers.join('\t'), example.join('\t'), ...emptyRows].join('\n');
-  const blob = new Blob(['\uFEFF' + rows], { type: 'text/tab-separated-values;charset=utf-8;' });
+  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${tpl.filename}.tsv`;
+  a.download = `${tpl.filename}.xlsx`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
   toast.success(`Plantilla ${tpl.label} descargada`);
 }
