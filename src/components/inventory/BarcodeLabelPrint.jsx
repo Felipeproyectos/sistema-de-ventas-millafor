@@ -111,16 +111,16 @@ export default function BarcodeLabelPrint({ product }) {
           <DialogHeader>
             <DialogTitle>Vista previa de etiqueta</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center py-4 bg-white rounded-lg border border-border p-4">
-            <p className="text-[9px] font-bold text-black uppercase text-center mb-0.5 max-w-[56mm] break-words">
+          <div className="flex flex-col items-center bg-white rounded-lg border border-border p-3" style={{minHeight: '120px', width: '100%'}}>
+            <p className="text-[9px] font-bold text-black uppercase text-center mb-0.5 leading-tight" style={{maxWidth: '56mm', wordBreak: 'break-word'}}>
               {product.name}
             </p>
             {product.category && (
               <p className="text-[8px] text-gray-500 mb-0.5">{product.category}</p>
             )}
-            <hr className="w-full border-dashed border-black my-1" />
-            <svg ref={svgRef} className="max-w-[56mm]" />
-            <hr className="w-full border-dashed border-black my-1" />
+            <hr className="border-dashed border-black my-1" style={{width: '100%'}} />
+            <svg ref={svgRef} style={{maxWidth: '56mm', display: 'block'}} />
+            <hr className="border-dashed border-black my-1" style={{width: '100%'}} />
           </div>
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center gap-2">
