@@ -141,7 +141,16 @@ function downloadTemplate(config) {
   const ws = XLSX.utils.aoa_to_sheet([headers, example]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
-  XLSX.writeFile(wb, `plantilla_${config.entity.toLowerCase()}.xlsx`, { bookType: 'xlsx' });
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `plantilla_${config.entity.toLowerCase()}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 export default function BulkImportModal({ open, onOpenChange, entityType, customers = [], onSuccess, defaultCategory = '' }) {
