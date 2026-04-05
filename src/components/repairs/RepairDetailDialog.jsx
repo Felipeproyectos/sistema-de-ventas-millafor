@@ -217,16 +217,7 @@ export default function RepairDetailDialog({ repair, onClose }) {
         if (repair.parts_used?.length) {
           y = drawSectionHeader('REPUESTOS UTILIZADOS', y);
           const pCols = [W*0.45, W*0.15, W*0.2, W*0.2];
-          const pHdrs = ['DESCRIPCIÓN','CANT.','P. UNITARIO','SUBTOTAL'];
           let px = ml;
-          doc.setFillColor(241,245,249); doc.setDrawColor(...BORDER); doc.setLineWidth(0.25);
-          pHdrs.forEach((h,i) => {
-            doc.rect(px, y, pCols[i], 6, 'FD');
-            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...GRAY);
-            doc.text(h, px+pCols[i]/2, y+4, {align:'center'});
-            px += pCols[i];
-          });
-          y += 6;
           repair.parts_used.forEach((p, ti) => {
             px = ml;
             if (ti%2===0) { doc.setFillColor(248,250,252); } else { doc.setFillColor(...WHITE); }
