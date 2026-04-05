@@ -12,12 +12,16 @@ import PdfPreviewModal from '../PdfPreviewModal';
 export default function RepairDetailDialog({ repair, onClose }) {
   const [settings, setSettings] = useState(null);
   const [machineData, setMachineData] = useState(null);
+  const [customerData, setCustomerData] = useState(null);
   const [pdfPreview, setPdfPreview] = useState({ open: false, url: null, filename: '' });
   const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     base44.entities.CompanySettings.list().then(s => { if (s.length) setSettings(s[0]); });
-  }, []);
+    if (repair?.customer_id) {
+      base44.entities.Customer.filter({ id: repair.customer_id }).then(r => { if (r.length) setCustomerData(r[0]); }).catch(() => {});
+    }
+  }, [repair?.customer_id]);
 
   useEffect(() => {
     // Prefer data stored on the repair itself; fallback to fetching from Machine entity
@@ -110,7 +114,7 @@ export default function RepairDetailDialog({ repair, onClose }) {
       // ── CLIENT + ORDER INFO (2 columns) ──
       const colW = W / 2 - 2;
       const leftX = ml, rightX = ml + colW + 4;
-      const infoH = 44;
+      const infoH = 44 + (customerData?.address ? 6 : 0) + (customerData?.rut || customerData?.notes?.startsWith('RUT:') ? 6 : 0);
 
       // Left box - client
       doc.setFillColor(...LGRAY); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
@@ -119,10 +123,13 @@ export default function RepairDetailDialog({ repair, onClose }) {
       doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...WHITE);
       doc.text('DATOS DEL CLIENTE', leftX + colW/2, y + 5, { align:'center' });
 
+      const rut = customerData?.rut || (customerData?.notes?.startsWith('RUT:') ? customerData.notes.replace('RUT: ', '') : '');
       const clientRows = [
         ['NOMBRE', repair.customer_name || '-'],
-        ['TELÉFONO', '-'],
-        ['EMAIL', '-'],
+        ['TELÉFONO', customerData?.phone || '-'],
+        ['EMAIL', customerData?.email || '-'],
+        ['DIRECCIÓN', customerData?.address || '-'],
+        ...(rut ? [['RUT', rut]] : []),
       ];
       clientRows.forEach(([lbl, val], i) => {
         const fy = y + 12 + i * 6;

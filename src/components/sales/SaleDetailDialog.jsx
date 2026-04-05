@@ -11,12 +11,16 @@ import PdfPreviewModal from '../PdfPreviewModal';
 
 export default function SaleDetailDialog({ sale, onClose }) {
   const [settings, setSettings] = useState(null);
+  const [customerData, setCustomerData] = useState(null);
   const [pdfPreview, setPdfPreview] = useState({ open: false, url: null, filename: '' });
   const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     base44.entities.CompanySettings.list().then(s => { if (s.length) setSettings(s[0]); });
-  }, []);
+    if (sale?.customer_id) {
+      base44.entities.Customer.filter({ id: sale.customer_id }).then(r => { if (r.length) setCustomerData(r[0]); }).catch(() => {});
+    }
+  }, [sale?.customer_id]);
 
   if (!sale) return null;
 
@@ -71,7 +75,13 @@ export default function SaleDetailDialog({ sale, onClose }) {
       // Client
       doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
       doc.text((sale.customer_name||'-').toUpperCase(),ml,y); y+=5;
-      if (sale.attended_by) { doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY); doc.text(`Atendido por: ${sale.attended_by}`, ml, y); y+=5; }
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
+      const cRut = customerData?.rut || (customerData?.notes?.startsWith('RUT:') ? customerData.notes.replace('RUT: ', '') : '');
+      if (cRut)                  { doc.text(`RUT: ${cRut}`, ml, y); y+=4.5; }
+      if (customerData?.phone)   { doc.text(`Teléfono: ${customerData.phone}`, ml, y); y+=4.5; }
+      if (customerData?.email)   { doc.text(`Email: ${customerData.email}`, ml, y); y+=4.5; }
+      if (customerData?.address) { doc.text(`Dirección: ${customerData.address}`, ml, y); y+=4.5; }
+      if (sale.attended_by)      { doc.text(`Atendido por: ${sale.attended_by}`, ml, y); y+=4.5; }
       y+=3;
 
       // Items table

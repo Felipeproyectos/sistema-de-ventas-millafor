@@ -139,6 +139,8 @@ export default function QuoteDetailDialog({ quote, onClose, onRefresh }) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(...GRAY);
+    const qRut = customer?.rut || (customer?.notes?.startsWith('RUT:') ? customer.notes.replace('RUT: ', '') : '');
+    if (qRut)              { doc.text(`RUT: ${qRut}`, ml, y); y += 4.5; }
     if (customer?.phone)   { doc.text(`Teléfono: ${customer.phone}`, ml, y); y += 4.5; }
     if (customer?.email)   { doc.text(`Email: ${customer.email}`, ml, y); y += 4.5; }
     if (customer?.address) { doc.text(`Dirección: ${customer.address}`, ml, y); y += 4.5; }
