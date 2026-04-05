@@ -1,5 +1,121 @@
 import { getPdfBlobUrl } from './pdfUtils';
 
+export async function generateCreditIndividualPdf(credit, settings) {
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  const ml = 14, mr = pw - 14;
+  const W = mr - ml;
+  const DARK = [8, 18, 40], BLUE = [30, 70, 140], GRAY = [100, 115, 145];
+
+  // ── HEADER ──
+  doc.setFillColor(...DARK); doc.rect(0, 0, pw, 42, 'F');
+  doc.setFillColor(...BLUE); doc.rect(0, 37, pw, 5, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(255,255,255);
+  doc.text((settings?.company_name || 'EMPRESA').toUpperCase(), ml, 12);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(160,190,240);
+  let hY = 18;
+  if (settings?.legal_rep) { doc.text(`Rep. Legal: ${settings.legal_rep}`, ml, hY); hY += 4; }
+  if (settings?.tax_id)    { doc.text(`RUT: ${settings.tax_id}`, ml, hY); hY += 4; }
+  if (settings?.phone)     { doc.text(`Tel: ${settings.phone}`, ml, hY); hY += 4; }
+  if (settings?.email)     { doc.text(settings.email, ml, hY); }
+
+  const logoSize = 26, logoX = mr - logoSize;
+  if (settings?.logo_url) {
+    try {
+      const img = await new Promise((res,rej) => { const i = new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=rej; i.src=settings.logo_url; });
+      const c = document.createElement('canvas'); c.width=img.width; c.height=img.height; c.getContext('2d').drawImage(img,0,0);
+      doc.setFillColor(255,255,255); doc.roundedRect(logoX-3,5,logoSize+6,logoSize+4,2,2,'F');
+      doc.addImage(c.toDataURL('image/png'),'PNG',logoX,7,logoSize,logoSize-2);
+    } catch {}
+  }
+
+  // ── TITLE BAR ──
+  let y = 48;
+  doc.setFillColor(235,240,252); doc.rect(ml,y,W,12,'F');
+  doc.setFillColor(...BLUE); doc.rect(ml,y,4,12,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...DARK);
+  doc.text('COMPROBANTE DE CRÉDITO', ml+8, y+8.5);
+  const now = new Date();
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+  doc.text(`Generado: ${now.toLocaleDateString('es-CL')} ${now.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})}`, mr, y+8.5, { align:'right' });
+  y += 17;
+
+  // ── CLIENT INFO ──
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...DARK);
+  doc.text((credit.client_name || '-').toUpperCase(), ml, y); y += 5;
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
+  if (credit.client_rut)   { doc.text(`RUT: ${credit.client_rut}`, ml, y); y += 4.5; }
+  if (credit.client_phone) { doc.text(`Teléfono: ${credit.client_phone}`, ml, y); y += 4.5; }
+  if (credit.client_email) { doc.text(`Email: ${credit.client_email}`, ml, y); y += 4.5; }
+  y += 3;
+
+  // ── DETAILS BOX ──
+  const details = [
+    ['Descripción / Producto', credit.description || '-'],
+    ['Fecha del servicio', credit.service_date || '-'],
+    ['Fecha de vencimiento', credit.due_date || '-'],
+    ['Estado', credit.status === 'pagado' ? 'PAGADO' : credit.status === 'vencido' ? 'VENCIDO' : 'PENDIENTE'],
+    ['Notas', credit.notes || '-'],
+  ];
+  details.forEach(([label, val]) => {
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...DARK);
+    doc.text(label + ':', ml, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...GRAY);
+    doc.text(String(val), ml + 52, y);
+    y += 5.5;
+  });
+  y += 4;
+
+  // ── AMOUNTS ──
+  const remaining = Math.max(0, (credit.total_amount || 0) - (credit.amount_paid || 0));
+  const amountRows = [
+    ['Monto Total', `$${(credit.total_amount||0).toLocaleString('es-CL')}`, DARK],
+    ['Total Abonado', `$${(credit.amount_paid||0).toLocaleString('es-CL')}`, BLUE],
+    ['Saldo Pendiente', `$${remaining.toLocaleString('es-CL')}`, remaining > 0 ? [180,30,30] : [34,140,80]],
+  ];
+  amountRows.forEach(([label, val, color]) => {
+    doc.setFillColor(245,247,252); doc.rect(ml, y, W, 8, 'F');
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRAY);
+    doc.text(label, ml+3, y+5.5);
+    doc.setFont('helvetica','bold'); doc.setTextColor(...color);
+    doc.text(val, mr-3, y+5.5, { align:'right' });
+    y += 9;
+  });
+  y += 6;
+
+  // ── PAYMENTS HISTORY ──
+  if (credit.payments && credit.payments.length > 0) {
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...DARK);
+    doc.text('HISTORIAL DE ABONOS', ml, y); y += 5;
+    doc.setFillColor(...DARK); doc.rect(ml, y, W, 7, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(160,195,255);
+    doc.text('FECHA', ml+3, y+5); doc.text('MONTO', ml+50, y+5); doc.text('NOTA', ml+85, y+5);
+    y += 7;
+    credit.payments.forEach((p, i) => {
+      const bg = i % 2 === 0 ? [248,250,255] : [255,255,255];
+      doc.setFillColor(...bg); doc.rect(ml, y, W, 7, 'F');
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...DARK);
+      doc.text(p.date || '-', ml+3, y+5);
+      doc.text(`$${(p.amount||0).toLocaleString('es-CL')}`, ml+50, y+5);
+      doc.setTextColor(...GRAY); doc.text(p.note || '', ml+85, y+5);
+      y += 7;
+    });
+  }
+
+  // ── FOOTER ──
+  const footerY = ph - 18;
+  doc.setFillColor(...DARK); doc.rect(0, footerY, pw, 18, 'F');
+  doc.setFillColor(...BLUE); doc.rect(0, footerY, pw, 1.5, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(200,215,245);
+  doc.text((settings?.company_name || '').toUpperCase(), pw/2, footerY+7, { align:'center' });
+  doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(100,135,195);
+  doc.text('Documento generado digitalmente por SOLUCIONES TECNOLOGICAS FML', pw/2, footerY+13, { align:'center' });
+
+  return { url: getPdfBlobUrl(doc), doc };
+}
+
 export async function generateCreditReportPdf(credits, settings) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });

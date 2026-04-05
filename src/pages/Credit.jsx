@@ -165,6 +165,7 @@ export default function Credit() {
             <CreditCard2
               key={credit.id}
               credit={credit}
+              settings={settings}
               onEdit={handleEdit}
               onDelete={handleDelete}
               onRefresh={() => queryClient.invalidateQueries({ queryKey: ['credits'] })}

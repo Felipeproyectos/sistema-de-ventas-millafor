@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Phone, Mail, Calendar, Edit2, Trash2, Plus, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Phone, Mail, Calendar, Edit2, Trash2, Plus, AlertTriangle, Clock, FileText, Loader2 } from 'lucide-react';
+import { generateCreditIndividualPdf } from '../../lib/creditReportPdf';
+import { uploadDocToDrive } from '../../lib/driveUpload';
+import PdfPreviewModal from '../PdfPreviewModal';
+import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -11,11 +15,22 @@ const statusConfig = {
   vencido: { label: 'Vencido', color: 'text-red-600 bg-red-500/10 border-red-500/20' }
 };
 
-export default function CreditCard({ credit, onEdit, onDelete, onRefresh }) {
+export default function CreditCard({ credit, onEdit, onDelete, onRefresh, settings }) {
   const queryClient = useQueryClient();
   const [showPayment, setShowPayment] = useState(false);
   const [payAmount, setPayAmount] = useState('');
   const [payNote, setPayNote] = useState('');
+  const [pdfPreview, setPdfPreview] = useState({ open: false, url: null });
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
+  const handleGeneratePdf = async () => {
+    setGeneratingPdf(true);
+    const { url, doc } = await generateCreditIndividualPdf(credit, settings);
+    setPdfPreview({ open: true, url });
+    setGeneratingPdf(false);
+    const filename = `credito-${(credit.client_name || 'cliente').replace(/\s+/g, '-').toLowerCase()}-${credit.id?.slice(0,6)}.pdf`;
+    uploadDocToDrive(doc, filename, 'credito').then(() => toast.success('PDF guardado en Google Drive')).catch(() => {});
+  };
 
   const remaining = credit.total_amount - (credit.amount_paid || 0);
   const progress = Math.min(100, ((credit.amount_paid || 0) / credit.total_amount) * 100);
@@ -105,12 +120,15 @@ export default function CreditCard({ credit, onEdit, onDelete, onRefresh }) {
       )}
 
       {/* Actions */}
-      <div className="flex gap-2 pt-1">
+      <div className="flex gap-2 pt-1 flex-wrap">
         {credit.status !== 'pagado' && (
           <button onClick={() => setShowPayment(!showPayment)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors">
             <Plus className="h-3 w-3" /> Abonar
           </button>
         )}
+        <button onClick={handleGeneratePdf} disabled={generatingPdf} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-secondary text-muted-foreground rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50">
+          {generatingPdf ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />} PDF
+        </button>
         <button onClick={() => onEdit(credit)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-secondary text-muted-foreground rounded-lg hover:bg-secondary/80 transition-colors">
           <Edit2 className="h-3 w-3" /> Editar
         </button>
@@ -118,6 +136,13 @@ export default function CreditCard({ credit, onEdit, onDelete, onRefresh }) {
           <Trash2 className="h-3 w-3" /> Eliminar
         </button>
       </div>
+
+      <PdfPreviewModal
+        open={pdfPreview.open}
+        onOpenChange={open => setPdfPreview(p => ({ ...p, open }))}
+        blobUrl={pdfPreview.url}
+        filename={`credito-${(credit.client_name || 'cliente').replace(/\s+/g, '-').toLowerCase()}.pdf`}
+      />
     </div>
   );
 }
