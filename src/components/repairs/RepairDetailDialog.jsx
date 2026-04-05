@@ -239,6 +239,7 @@ export default function RepairDetailDialog({ repair, onClose }) {
             px = ml;
             if (ti%2===0) { doc.setFillColor(248,250,252); } else { doc.setFillColor(...WHITE); }
             const rowVals = [p.product_name||'-', String(p.quantity||0), `$${(p.unit_price||0).toLocaleString('es-CL')}`, `$${((p.quantity||0)*(p.unit_price||0)).toLocaleString('es-CL')}`];
+            doc.setDrawColor(...BORDER); doc.setLineWidth(0.2);
             rowVals.forEach((v,i) => {
               doc.rect(px, y, pCols[i], 7, 'FD');
               doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...DARK);
