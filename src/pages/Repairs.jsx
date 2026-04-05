@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { Wrench, Plus, Search, Eye, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,8 @@ import RepairFormDialog from '../components/repairs/RepairFormDialog';
 import RepairDetailDialog from '../components/repairs/RepairDetailDialog';
 
 export default function Repairs() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [repairs, setRepairs] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [machines, setMachines] = useState([]);
@@ -116,12 +119,16 @@ export default function Repairs() {
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetailRepair(r)}>
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => { setEditRepair(r); setFormOpen(true); }}>
-                          Editar
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(r)} title="Eliminar">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button variant="ghost" size="sm" onClick={() => { setEditRepair(r); setFormOpen(true); }}>
+                              Editar
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(r)} title="Eliminar">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                         </div>
                         </td>
                   </tr>

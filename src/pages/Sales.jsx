@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { ShoppingCart, Plus, Search, Eye } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
+import { ShoppingCart, Plus, Search, Eye, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import PageHeader from '../components/PageHeader';
@@ -10,6 +12,8 @@ import SaleFormDialog from '../components/sales/SaleFormDialog';
 import SaleDetailDialog from '../components/sales/SaleDetailDialog';
 
 export default function Sales() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [sales, setSales] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -17,6 +21,13 @@ export default function Sales() {
   const [search, setSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [detailSale, setDetailSale] = useState(null);
+
+  const handleDelete = async (sale) => {
+    if (!confirm(`¿Eliminar la venta #${sale.order_number || sale.id?.substring(0,6)}? Esta acción no se puede deshacer.`)) return;
+    await base44.entities.SaleOrder.delete(sale.id);
+    setSales(prev => prev.filter(s => s.id !== sale.id));
+    toast.success('Venta eliminada');
+  };
 
   async function loadData() {
     const [s, c, p] = await Promise.all([
@@ -79,9 +90,16 @@ export default function Sales() {
                     <td className="p-4 font-medium text-primary">${(s.total || 0).toLocaleString('es-CL')}</td>
                     <td className="p-4"><StatusBadge status={s.status} /></td>
                     <td className="p-4 text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetailSale(s)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetailSale(s)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {isAdmin && (
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(s)} title="Eliminar">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
