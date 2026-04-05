@@ -237,10 +237,11 @@ export default function RepairDetailDialog({ repair, onClose }) {
           y += 7;
           repair.parts_used.forEach((p, ti) => {
             px = ml;
-            if (ti%2===0) { doc.setFillColor(248,250,252); } else { doc.setFillColor(...WHITE); }
+            const rowBg = ti%2===0 ? [248,250,252] : [255,255,255];
             const rowVals = [p.product_name||'-', String(p.quantity||0), `$${(p.unit_price||0).toLocaleString('es-CL')}`, `$${((p.quantity||0)*(p.unit_price||0)).toLocaleString('es-CL')}`];
             doc.setDrawColor(...BORDER); doc.setLineWidth(0.2);
             rowVals.forEach((v,i) => {
+              doc.setFillColor(...rowBg);
               doc.rect(px, y, pCols[i], 7, 'FD');
               doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...DARK);
               doc.text(v, px+pCols[i]/2, y+4.5, {align:'center'});
