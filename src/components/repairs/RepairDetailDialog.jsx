@@ -175,11 +175,11 @@ export default function RepairDetailDialog({ repair, onClose }) {
         machineData?.type || repair.machine_type || '-',
       ];
       const mW = W / mCols.length;
-      // Header row - dark background with white text
+      // Header row - accent color
       let mx = ml;
       doc.setDrawColor(...BORDER); doc.setLineWidth(0.25);
       mCols.forEach((col) => {
-        doc.setFillColor(70, 80, 95);
+        doc.setFillColor(...ACCENT);
         doc.rect(mx, y, mW, 7, 'FD');
         doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...WHITE);
         doc.text(col, mx + mW/2, y + 4.5, { align:'center' });
@@ -225,6 +225,16 @@ export default function RepairDetailDialog({ repair, onClose }) {
           y = drawSectionHeader('REPUESTOS UTILIZADOS', y);
           const pCols = [W*0.45, W*0.15, W*0.2, W*0.2];
           let px = ml;
+          // Table header
+          const pHeaders = ['PRODUCTO', 'CANT.', 'PRECIO UNIT.', 'SUBTOTAL'];
+          pHeaders.forEach((h, i) => {
+            doc.setFillColor(...ACCENT);
+            doc.rect(px, y, pCols[i], 7, 'F');
+            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...WHITE);
+            doc.text(h, px + pCols[i]/2, y + 4.5, { align:'center' });
+            px += pCols[i];
+          });
+          y += 7;
           repair.parts_used.forEach((p, ti) => {
             px = ml;
             if (ti%2===0) { doc.setFillColor(248,250,252); } else { doc.setFillColor(...WHITE); }
