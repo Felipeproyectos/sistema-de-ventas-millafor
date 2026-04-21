@@ -276,7 +276,7 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
                   <SelectTrigger className="bg-secondary border-border flex-1">
                     <SelectValue placeholder="Seleccionar producto" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="bottom" position="popper" className="max-h-60 overflow-y-auto">
                     <div className="relative px-2 pb-1 pt-1">
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <input
