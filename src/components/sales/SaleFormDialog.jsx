@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Barcode } from 'lucide-react';
+import { Plus, Trash2, Search } from 'lucide-react';
 import { toast } from "sonner";
 import BarcodeScannerInput from './BarcodeScannerInput';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
@@ -27,6 +27,7 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
   const [scanFeedback, setScanFeedback] = useState({ last: '', error: '' });
   const [scannerEnabled, setScannerEnabled] = useState(false);
   const [scannerActive, setScannerActive] = useState(false);
+  const [productSearch, setProductSearch] = useState({});
 
   useEffect(() => {
     if (open) {
@@ -271,16 +272,31 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
           <div className="space-y-2">
             {form.items.map((item, idx) => (
               <div key={idx} className="flex items-center gap-2">
-                <Select value={item.product_id} onValueChange={v => updateItem(idx, 'product_id', v)}>
+                <Select value={item.product_id} onValueChange={v => { updateItem(idx, 'product_id', v); setProductSearch(s => ({ ...s, [idx]: '' })); }}>
                   <SelectTrigger className="bg-secondary border-border flex-1">
                     <SelectValue placeholder="Seleccionar producto" />
                   </SelectTrigger>
                   <SelectContent>
-                    {products.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name} — Stock: {p.stock || 0}
-                      </SelectItem>
-                    ))}
+                    <div className="relative px-2 pb-1 pt-1">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <input
+                        placeholder="Buscar producto..."
+                        className="w-full pl-7 pr-2 py-1.5 text-sm bg-secondary border border-border rounded-md outline-none text-foreground placeholder:text-muted-foreground"
+                        value={productSearch[idx] || ''}
+                        onChange={e => setProductSearch(s => ({ ...s, [idx]: e.target.value }))}
+                        onKeyDown={e => e.stopPropagation()}
+                      />
+                    </div>
+                    {products
+                      .filter(p => {
+                        const q = (productSearch[idx] || '').toLowerCase();
+                        return !q || p.name.toLowerCase().includes(q) || (p.code || '').toLowerCase().includes(q);
+                      })
+                      .map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name} — Stock: {p.stock || 0}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 <Input
