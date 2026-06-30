@@ -1,0 +1,89 @@
+{
+  "name": "SaleOrder",
+  "type": "object",
+  "properties": {
+    "order_number": {
+      "type": "string",
+      "title": "N\u00famero de venta"
+    },
+    "customer_id": {
+      "type": "string",
+      "title": "Cliente"
+    },
+    "customer_name": {
+      "type": "string",
+      "title": "Nombre del cliente"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Fecha"
+    },
+    "attended_by": {
+      "type": "string",
+      "title": "Atendido por"
+    },
+    "items": {
+      "type": "array",
+      "title": "Productos",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "purchase_price": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "subtotal": {
+      "type": "number",
+      "title": "Subtotal",
+      "default": 0
+    },
+    "discount": {
+      "type": "number",
+      "title": "Descuento",
+      "default": 0
+    },
+    "total": {
+      "type": "number",
+      "title": "Total",
+      "default": 0
+    },
+    "abono": {
+      "type": "number",
+      "title": "Abono / Anticipo",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "completada",
+        "cancelada"
+      ],
+      "title": "Estado",
+      "default": "completada"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notas"
+    }
+  },
+  "required": [
+    "customer_id",
+    "date"
+  ]
+}

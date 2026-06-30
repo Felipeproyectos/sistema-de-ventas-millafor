@@ -30,6 +30,11 @@ export default function Credit() {
     queryFn: () => base44.entities.CreditSale.list('-created_date')
   });
 
+  const { data: customers = [] } = useQuery({
+    queryKey: ['customers'],
+    queryFn: () => base44.entities.Customer.list()
+  });
+
   const today = new Date();
 
   const enriched = credits.map(c => {
@@ -191,7 +196,7 @@ export default function Credit() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <CreditForm initialData={editingCredit} onSave={handleSave} onCancel={() => { setShowForm(false); setEditingCredit(null); }} />
+            <CreditForm initialData={editingCredit} onSave={handleSave} onCancel={() => { setShowForm(false); setEditingCredit(null); }} customers={customers} />
           </div>
         </div>
       )}

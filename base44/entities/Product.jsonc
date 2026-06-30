@@ -1,0 +1,48 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Nombre"
+    },
+    "code": {
+      "type": "string",
+      "title": "C\u00f3digo"
+    },
+    "barcode": {
+      "type": "string",
+      "title": "C\u00f3digo de Barras"
+    },
+    "stock": {
+      "type": "number",
+      "title": "Stock disponible",
+      "default": 0
+    },
+    "purchase_price": {
+      "type": "number",
+      "title": "Valor de compra"
+    },
+    "sale_price": {
+      "type": "number",
+      "title": "Valor de venta"
+    },
+    "min_stock": {
+      "type": "number",
+      "title": "Stock m\u00ednimo",
+      "default": 5
+    },
+    "category": {
+      "type": "string",
+      "title": "Categor\u00eda"
+    },
+    "description": {
+      "type": "string",
+      "title": "Descripci\u00f3n"
+    }
+  },
+  "required": [
+    "name",
+    "code"
+  ]
+}

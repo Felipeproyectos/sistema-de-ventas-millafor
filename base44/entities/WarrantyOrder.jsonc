@@ -1,0 +1,67 @@
+{
+  "name": "WarrantyOrder",
+  "type": "object",
+  "properties": {
+    "order_number": {
+      "type": "string",
+      "title": "N\u00b0 Orden"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Fecha"
+    },
+    "customer_name": {
+      "type": "string",
+      "title": "Nombre del Cliente"
+    },
+    "customer_phone": {
+      "type": "string",
+      "title": "Tel\u00e9fono"
+    },
+    "customer_email": {
+      "type": "string",
+      "title": "Correo"
+    },
+    "machine_brand": {
+      "type": "string",
+      "title": "Marca"
+    },
+    "machine_model": {
+      "type": "string",
+      "title": "Modelo"
+    },
+    "invoice_number": {
+      "type": "string",
+      "title": "N\u00b0 Factura o Boleta"
+    },
+    "seller_company": {
+      "type": "string",
+      "title": "Empresa Vendedora"
+    },
+    "observations_1": {
+      "type": "string",
+      "title": "Observaci\u00f3n principal"
+    },
+    "observations_2": {
+      "type": "string",
+      "title": "Observaci\u00f3n secundaria"
+    },
+    "security_epp": {
+      "type": "string",
+      "title": "EPP / Seguridad"
+    },
+    "maintenance": {
+      "type": "string",
+      "title": "Mantenimiento"
+    },
+    "responsible_name": {
+      "type": "string",
+      "title": "Responsable"
+    }
+  },
+  "required": [
+    "customer_name",
+    "date"
+  ]
+}

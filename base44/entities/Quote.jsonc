@@ -1,0 +1,105 @@
+{
+  "name": "Quote",
+  "type": "object",
+  "properties": {
+    "quote_number": {
+      "type": "string",
+      "title": "N\u00famero de cotizaci\u00f3n"
+    },
+    "customer_id": {
+      "type": "string",
+      "title": "Cliente"
+    },
+    "customer_name": {
+      "type": "string",
+      "title": "Nombre del cliente"
+    },
+    "machine_id": {
+      "type": "string",
+      "title": "Equipo (opcional)"
+    },
+    "machine_name": {
+      "type": "string",
+      "title": "Nombre del equipo"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Fecha"
+    },
+    "expiry_date": {
+      "type": "string",
+      "format": "date",
+      "title": "V\u00e1lida hasta"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "venta",
+        "reparacion"
+      ],
+      "title": "Tipo de cotizaci\u00f3n",
+      "default": "venta"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aceptada",
+        "rechazada"
+      ],
+      "title": "Estado",
+      "default": "pendiente"
+    },
+    "attended_by": {
+      "type": "string",
+      "title": "Atendido por"
+    },
+    "items": {
+      "type": "array",
+      "title": "\u00cdtems",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "labor_cost": {
+      "type": "number",
+      "title": "Mano de obra",
+      "default": 0
+    },
+    "discount": {
+      "type": "number",
+      "title": "Descuento",
+      "default": 0
+    },
+    "total": {
+      "type": "number",
+      "title": "Total",
+      "default": 0
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notas"
+    },
+    "converted_to": {
+      "type": "string",
+      "title": "Convertida a (ID de orden)"
+    }
+  },
+  "required": [
+    "customer_id",
+    "date",
+    "type"
+  ]
+}

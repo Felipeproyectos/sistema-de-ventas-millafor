@@ -1,0 +1,22 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user"
+      ],
+      "title": "Rol",
+      "default": "user"
+    },
+    "nick": {
+      "type": "string",
+      "title": "Nick / Apodo"
+    }
+  },
+  "required": [
+    "nick"
+  ]
+}

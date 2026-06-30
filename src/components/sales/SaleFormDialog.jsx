@@ -224,8 +224,24 @@ export default function SaleFormDialog({ open, onOpenChange, customers, products
               <Label>Cliente *</Label>
               <Select value={form.customer_id} onValueChange={v => setForm(f => ({ ...f, customer_id: v }))}>
                 <SelectTrigger className="bg-secondary border-border"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>
-                  {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                <SelectContent side="bottom" position="popper" className="max-h-64 overflow-y-auto">
+                  <div className="relative px-2 pb-1 pt-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <input
+                      placeholder="Buscar cliente..."
+                      className="w-full pl-7 pr-2 py-1.5 text-sm bg-secondary border border-border rounded-md outline-none text-foreground placeholder:text-muted-foreground"
+                      value={form._customerSearch || ''}
+                      onChange={e => setForm(f => ({ ...f, _customerSearch: e.target.value }))}
+                      onKeyDown={e => e.stopPropagation()}
+                    />
+                  </div>
+                  {customers
+                    .filter(c => {
+                      const q = (form._customerSearch || '').toLowerCase();
+                      return !q || c.name.toLowerCase().includes(q) || (c.phone || '').includes(q);
+                    })
+                    .map(c => <SelectItem key={c.id} value={c.id}>{c.name}{c.phone ? ` — ${c.phone}` : ''}</SelectItem>)
+                  }
                 </SelectContent>
               </Select>
             </div>

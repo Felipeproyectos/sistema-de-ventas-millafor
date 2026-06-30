@@ -1,0 +1,119 @@
+{
+  "name": "RepairOrder",
+  "type": "object",
+  "properties": {
+    "order_number": {
+      "type": "string",
+      "title": "N\u00famero de orden"
+    },
+    "customer_id": {
+      "type": "string",
+      "title": "Cliente"
+    },
+    "customer_name": {
+      "type": "string",
+      "title": "Nombre del cliente"
+    },
+    "machine_id": {
+      "type": "string",
+      "title": "M\u00e1quina"
+    },
+    "machine_name": {
+      "type": "string",
+      "title": "Nombre de m\u00e1quina"
+    },
+    "machine_brand": {
+      "type": "string",
+      "title": "Marca"
+    },
+    "machine_model": {
+      "type": "string",
+      "title": "Modelo"
+    },
+    "machine_serial": {
+      "type": "string",
+      "title": "N\u00famero de serie"
+    },
+    "machine_type": {
+      "type": "string",
+      "title": "Tipo de m\u00e1quina"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Fecha"
+    },
+    "delivery_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Fecha estimada de entrega"
+    },
+    "problem_description": {
+      "type": "string",
+      "title": "Descripci\u00f3n del problema"
+    },
+    "solution_description": {
+      "type": "string",
+      "title": "Descripci\u00f3n de la soluci\u00f3n"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "en_proceso",
+        "finalizada"
+      ],
+      "title": "Estado",
+      "default": "pendiente"
+    },
+    "attended_by": {
+      "type": "string",
+      "title": "Atendido por"
+    },
+    "parts_used": {
+      "type": "array",
+      "title": "Repuestos utilizados",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "labor_cost": {
+      "type": "number",
+      "title": "Costo de mano de obra",
+      "default": 0
+    },
+    "total": {
+      "type": "number",
+      "title": "Total",
+      "default": 0
+    },
+    "abono": {
+      "type": "number",
+      "title": "Abono / Anticipo",
+      "default": 0
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notas"
+    }
+  },
+  "required": [
+    "customer_id",
+    "date",
+    "status"
+  ]
+}

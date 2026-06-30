@@ -1,0 +1,57 @@
+{
+  "name": "InventoryMovement",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "title": "Producto ID"
+    },
+    "product_name": {
+      "type": "string",
+      "title": "Producto"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "entrada",
+        "salida",
+        "ajuste"
+      ],
+      "title": "Tipo de movimiento"
+    },
+    "quantity": {
+      "type": "number",
+      "title": "Cantidad"
+    },
+    "stock_before": {
+      "type": "number",
+      "title": "Stock antes"
+    },
+    "stock_after": {
+      "type": "number",
+      "title": "Stock despu\u00e9s"
+    },
+    "reason": {
+      "type": "string",
+      "title": "Motivo"
+    },
+    "reference": {
+      "type": "string",
+      "title": "Referencia"
+    },
+    "user": {
+      "type": "string",
+      "title": "Usuario"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Fecha"
+    }
+  },
+  "required": [
+    "product_id",
+    "type",
+    "quantity"
+  ]
+}

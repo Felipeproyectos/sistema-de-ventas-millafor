@@ -1,0 +1,83 @@
+{
+  "name": "CreditSale",
+  "type": "object",
+  "properties": {
+    "client_name": {
+      "type": "string",
+      "title": "Nombre del Cliente"
+    },
+    "client_phone": {
+      "type": "string",
+      "title": "Tel\u00e9fono"
+    },
+    "client_email": {
+      "type": "string",
+      "title": "Email"
+    },
+    "client_rut": {
+      "type": "string",
+      "title": "RUT"
+    },
+    "service_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Fecha del Producto/Servicio"
+    },
+    "description": {
+      "type": "string",
+      "title": "Descripci\u00f3n del Producto/Servicio"
+    },
+    "total_amount": {
+      "type": "number",
+      "title": "Monto Total"
+    },
+    "amount_paid": {
+      "type": "number",
+      "title": "Monto Pagado",
+      "default": 0
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Fecha de Vencimiento"
+    },
+    "status": {
+      "type": "string",
+      "title": "Estado",
+      "enum": [
+        "pendiente",
+        "pagado",
+        "vencido"
+      ],
+      "default": "pendiente"
+    },
+    "notes": {
+      "type": "string",
+      "title": "Notas"
+    },
+    "payments": {
+      "type": "array",
+      "title": "Abonos",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "client_name",
+    "total_amount",
+    "due_date"
+  ]
+}
