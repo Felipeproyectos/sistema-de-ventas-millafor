@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Settings as SettingsIcon, Upload, Save, FileText, FileCheck, UserCog, History, Users, Monitor, ShieldCheck } from 'lucide-react';
 import AccessRequests from '../components/settings/AccessRequests';
+import BackupButton from '../components/settings/BackupButton';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,7 +127,8 @@ export default function Settings() {
 
       {/* Tab content */}
       {activeTab === 'general' && (
-        <div className="max-w-2xl">
+        <div className="max-w-2xl space-y-6">
+          <BackupButton />
           <div className="bg-card border border-border rounded-xl p-6 space-y-6">
             <div>
               <Label className="text-sm font-semibold mb-3 block">Logo de la Empresa</Label>
